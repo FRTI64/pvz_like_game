@@ -1,0 +1,48 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="Resource" path="res://data/levels/level_1.tres" id="2_lvl"]
+[ext_resource type="Script" path="res://scripts/core/grid_manager.gd" id="3_grid"]
+[ext_resource type="Script" path="res://scripts/core/sun_manager.gd" id="4_sun"]
+[ext_resource type="Script" path="res://scripts/core/wave_manager.gd" id="5_wave"]
+[ext_resource type="PackedScene" path="res://scenes/items/lawn_mower.tscn" id="6_mow"]
+[ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="7_hud"]
+
+[node name="Main" type="Node2D"]
+script = ExtResource("1_main")
+default_level = ExtResource("2_lvl")
+
+[node name="GridManager" type="Node2D" parent="."]
+script = ExtResource("3_grid")
+
+[node name="SunManager" type="Node2D" parent="."]
+script = ExtResource("4_sun")
+
+[node name="WaveManager" type="Node2D" parent="." node_paths=PackedStringArray("grid_manager")]
+script = ExtResource("5_wave")
+level_data = ExtResource("2_lvl")
+grid_manager = NodePath("../GridManager")
+
+[node name="LawnMowers" type="Node2D" parent="."]
+
+[node name="LawnMower0" parent="LawnMowers" instance=ExtResource("6_mow")]
+position = Vector2(215, 175)
+
+[node name="LawnMower1" parent="LawnMowers" instance=ExtResource("6_mow")]
+position = Vector2(215, 283)
+row = 1
+
+[node name="LawnMower2" parent="LawnMowers" instance=ExtResource("6_mow")]
+position = Vector2(215, 391)
+row = 2
+
+[node name="LawnMower3" parent="LawnMowers" instance=ExtResource("6_mow")]
+position = Vector2(215, 499)
+row = 3
+
+[node name="LawnMower4" parent="LawnMowers" instance=ExtResource("6_mow")]
+position = Vector2(215, 607)
+row = 4
+
+[node name="HUD" parent="." instance=ExtResource("7_hud")]
+

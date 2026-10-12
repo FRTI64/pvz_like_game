@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="28" fill="#2d6e32"/>
+  <circle cx="64" cy="64" r="38" fill="#48bb78"/>
+  <!-- Peashooter head outline -->
+  <circle cx="56" cy="60" r="26" fill="#38a169"/>
+  <!-- Snout -->
+  <ellipse cx="84" cy="58" rx="14" ry="12" fill="#2f855a"/>
+  <ellipse cx="90" cy="58" rx="8" ry="7" fill="#1c4532"/>
+  <!-- Eye -->
+  <circle cx="54" cy="50" r="7" fill="#ffffff"/>
+  <circle cx="56" cy="50" r="4" fill="#1a202c"/>
+  <circle cx="58" cy="48" r="1.5" fill="#ffffff"/>
+  <!-- Leaf -->
+  <path d="M 32 74 C 20 74 18 90 28 92 C 38 92 42 82 32 74 Z" fill="#276749"/>
+  <path d="M 44 84 C 52 98 64 96 68 88" stroke="#22543d" stroke-width="6" fill="none" stroke-linecap="round"/>
+</svg>
+

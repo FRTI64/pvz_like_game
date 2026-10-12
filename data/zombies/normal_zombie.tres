@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ZombieData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/zombie_data.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://scenes/zombies/normal_zombie.tscn" id="2_scene"]
+
+[resource]
+script = ExtResource("1_script")
+id = "normal_zombie"
+display_name = "Normal Zombie"
+max_health = 200
+armor_health = 0
+armor_type = 0
+move_speed = 24.0
+damage_per_second = 100.0
+is_flag_bearer = false
+theme_color = Color(0.45, 0.55, 0.4, 1)
+zombie_scene = ExtResource("2_scene")
+

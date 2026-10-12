@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ZombieData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/zombie_data.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://scenes/zombies/flag_zombie.tscn" id="2_scene"]
+
+[resource]
+script = ExtResource("1_script")
+id = "flag_zombie"
+display_name = "Flag Zombie"
+max_health = 200
+armor_health = 0
+armor_type = 0
+move_speed = 30.0
+damage_per_second = 100.0
+is_flag_bearer = true
+theme_color = Color(0.85, 0.2, 0.2, 1)
+zombie_scene = ExtResource("2_scene")
+

@@ -1,0 +1,20 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/items/lawn_mower.gd" id="1_mow"]
+[ext_resource type="Script" path="res://scripts/visuals/item_visuals.gd" id="2_vis"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_mow"]
+size = Vector2(50, 40)
+
+[node name="LawnMower" type="Area2D"]
+collision_layer = 16
+collision_mask = 2
+script = ExtResource("1_mow")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_mow")
+
+[node name="Visual" type="Node2D" parent="."]
+script = ExtResource("2_vis")
+item_kind = "lawnmower"
+

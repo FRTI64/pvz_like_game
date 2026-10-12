@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ZombieData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/zombie_data.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://scenes/zombies/conehead_zombie.tscn" id="2_scene"]
+
+[resource]
+script = ExtResource("1_script")
+id = "conehead_zombie"
+display_name = "Conehead Zombie"
+max_health = 200
+armor_health = 370
+armor_type = 1
+move_speed = 24.0
+damage_per_second = 100.0
+is_flag_bearer = false
+theme_color = Color(0.9, 0.45, 0.15, 1)
+zombie_scene = ExtResource("2_scene")
+

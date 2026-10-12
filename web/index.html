@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0">
+  <title>Plants vs Zombies - Web Edition (Godot 4.7.2)</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      touch-action: none;
+      margin: 0;
+      border: 0 none;
+      padding: 0;
+      text-align: center;
+      background-color: #1a2618;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    #canvas-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    #canvas {
+      display: block;
+      margin: 0;
+      color: white;
+      max-width: 100%;
+      max-height: 100%;
+      aspect-ratio: 16 / 9;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+      border-radius: 6px;
+    }
+    #canvas:focus {
+      outline: none;
+    }
+    #status {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background-color: rgba(20, 32, 18, 0.95);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+      transition: opacity 0.5s ease-out;
+    }
+    .sun-loader {
+      width: 64px;
+      height: 64px;
+      background: radial-gradient(circle, #ffe600 40%, #ff9900 100%);
+      border-radius: 50%;
+      box-shadow: 0 0 25px #ffcc00;
+      margin-bottom: 24px;
+      animation: spin 6s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg) scale(1); }
+      50% { transform: rotate(180deg) scale(1.1); }
+      100% { transform: rotate(360deg) scale(1); }
+    }
+    .title {
+      font-size: 26px;
+      font-weight: bold;
+      color: #9ae6b4;
+      margin-bottom: 12px;
+      letter-spacing: 1px;
+    }
+    #status-progress {
+      width: 320px;
+      height: 14px;
+      background: #2d3748;
+      border-radius: 7px;
+      overflow: hidden;
+      border: 2px solid #4a5568;
+    }
+    #status-progress-inner {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #48bb78, #38a169);
+      transition: width 0.15s ease-out;
+    }
+    #status-notice {
+      color: #cbd5e0;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+    #fullscreen-btn {
+      position: absolute;
+      bottom: 14px;
+      right: 14px;
+      background: rgba(0, 0, 0, 0.6);
+      color: #e2e8f0;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      padding: 6px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      z-index: 20;
+      transition: background 0.2s;
+    }
+    #fullscreen-btn:hover {
+      background: rgba(0, 0, 0, 0.85);
+      border-color: #48bb78;
+    }
+  </style>
+  <link id="-gd-engine-icon" rel="icon" type="image/svg+xml" href="icon.svg" />
+</head>
+<body>
+  <div id="canvas-container">
+    <canvas id="canvas">Your browser does not support canvas element.</canvas>
+    <div id="status">
+      <div class="sun-loader"></div>
+      <div class="title">PLANTS VS ZOMBIES</div>
+      <div id="status-progress">
+        <div id="status-progress-inner"></div>
+      </div>
+      <div id="status-notice">Loading game assets...</div>
+    </div>
+    <button id="fullscreen-btn" onclick="toggleFullscreen()">Fullscreen</button>
+  </div>
+
+  <script src="$GODOT_URL"></script>
+  <script>
+    const GODOT_CONFIG = $GODOT_CONFIG;
+    const engine = new Engine(GODOT_CONFIG);
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+          console.warn(`Fullscreen error: ${err.message}`);
+        });
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      }
+    }
+
+    (function() {
+      const statusOverlay = document.getElementById('status');
+      const progressBar = document.getElementById('status-progress-inner');
+      const statusNotice = document.getElementById('status-notice');
+
+      function setStatusProgress(current, total) {
+        if (total > 0) {
+          const percent = Math.floor((current / total) * 100);
+          progressBar.style.width = percent + '%';
+          statusNotice.textContent = 'Loading game... ' + percent + '%';
+        }
+      }
+
+      function setStatusMode(mode) {
+        if (mode === 'hidden') {
+          statusOverlay.style.opacity = '0';
+          setTimeout(() => {
+            statusOverlay.style.display = 'none';
+          }, 500);
+        }
+      }
+
+      engine.startGame({
+        onProgress: setStatusProgress,
+      }).then(() => {
+        setStatusMode('hidden');
+      }).catch(err => {
+        statusNotice.textContent = 'Failed to load: ' + err;
+        console.error(err);
+      });
+    })();
+  </script>
+</body>
+</html>
+

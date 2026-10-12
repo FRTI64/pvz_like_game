@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="PlantData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/plant_data.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://scenes/plants/chomper.tscn" id="2_scene"]
+
+[resource]
+script = ExtResource("1_script")
+id = "chomper"
+display_name = "Chomper"
+description = "Devours a zombie whole, but is vulnerable while chewing."
+sun_cost = 150
+cooldown = 7.5
+max_health = 300
+plant_type = 5
+attack_damage = 999
+attack_interval = 0.0
+projectile_speed = 0.0
+sun_production_interval = 0.0
+sun_production_amount = 0
+theme_color = Color(0.65, 0.22, 0.7, 1)
+plant_scene = ExtResource("2_scene")
+
