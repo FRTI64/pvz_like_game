@@ -1,0 +1,111 @@
+[gd_resource type="Resource" script_class="LevelData" load_steps=14 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/level_data.gd" id="1_script"]
+[ext_resource type="Resource" path="res://data/plants/peashooter.tres" id="2_pea"]
+[ext_resource type="Resource" path="res://data/plants/sunflower.tres" id="3_sun"]
+[ext_resource type="Resource" path="res://data/plants/wallnut.tres" id="4_nut"]
+[ext_resource type="Resource" path="res://data/plants/cherry_bomb.tres" id="5_cherry"]
+[ext_resource type="Resource" path="res://data/plants/snow_pea.tres" id="6_snow"]
+[ext_resource type="Resource" path="res://data/plants/potato_mine.tres" id="7_mine"]
+[ext_resource type="Resource" path="res://data/plants/repeater.tres" id="8_rep"]
+[ext_resource type="Resource" path="res://data/plants/chomper.tres" id="9_chomp"]
+[ext_resource type="Resource" path="res://data/zombies/normal_zombie.tres" id="10_znorm"]
+[ext_resource type="Resource" path="res://data/zombies/conehead_zombie.tres" id="11_zcone"]
+[ext_resource type="Resource" path="res://data/zombies/buckethead_zombie.tres" id="12_zbuck"]
+[ext_resource type="Resource" path="res://data/zombies/flag_zombie.tres" id="13_zflag"]
+
+[resource]
+script = ExtResource("1_script")
+level_id = 3
+level_name = "Level 3: Zombie Onslaught"
+initial_sun = 200
+natural_sun_interval = 7.5
+initial_delay = 6.0
+available_plants = Array[Resource]([
+	ExtResource("2_pea"),
+	ExtResource("3_sun"),
+	ExtResource("4_nut"),
+	ExtResource("5_cherry"),
+	ExtResource("6_snow"),
+	ExtResource("7_mine"),
+	ExtResource("8_rep"),
+	ExtResource("9_chomp")
+])
+waves = [
+	{
+		"delay": 12.0,
+		"is_huge": false,
+		"spawns": [
+			{ "zombie": ExtResource("10_znorm"), "lane": 1, "offset": 0.0 },
+			{ "zombie": ExtResource("11_zcone"), "lane": 3, "offset": 2.0 }
+		]
+	},
+	{
+		"delay": 16.0,
+		"is_huge": false,
+		"spawns": [
+			{ "zombie": ExtResource("12_zbuck"), "lane": 2, "offset": 0.0 },
+			{ "zombie": ExtResource("10_znorm"), "lane": 0, "offset": 1.5 },
+			{ "zombie": ExtResource("11_zcone"), "lane": 4, "offset": 3.0 }
+		]
+	},
+	{
+		"delay": 20.0,
+		"is_huge": true,
+		"spawns": [
+			{ "zombie": ExtResource("13_zflag"), "lane": 2, "offset": 0.0 },
+			{ "zombie": ExtResource("11_zcone"), "lane": 1, "offset": 1.0 },
+			{ "zombie": ExtResource("12_zbuck"), "lane": 3, "offset": 2.0 },
+			{ "zombie": ExtResource("10_znorm"), "lane": 0, "offset": 3.0 },
+			{ "zombie": ExtResource("10_znorm"), "lane": 4, "offset": 4.0 }
+		]
+	},
+	{
+		"delay": 22.0,
+		"is_huge": false,
+		"spawns": [
+			{ "zombie": ExtResource("12_zbuck"), "lane": 1, "offset": 0.0 },
+			{ "zombie": ExtResource("12_zbuck"), "lane": 2, "offset": 1.0 },
+			{ "zombie": ExtResource("11_zcone"), "lane": 3, "offset": 2.0 },
+			{ "zombie": ExtResource("10_znorm"), "lane": 0, "offset": 3.0 },
+			{ "zombie": ExtResource("10_znorm"), "lane": 4, "offset": 4.0 }
+		]
+	},
+	{
+		"delay": 24.0,
+		"is_huge": true,
+		"spawns": [
+			{ "zombie": ExtResource("13_zflag"), "lane": 0, "offset": 0.0 },
+			{ "zombie": ExtResource("13_zflag"), "lane": 4, "offset": 0.0 },
+			{ "zombie": ExtResource("12_zbuck"), "lane": 2, "offset": 1.0 },
+			{ "zombie": ExtResource("11_zcone"), "lane": 1, "offset": 2.0 },
+			{ "zombie": ExtResource("11_zcone"), "lane": 3, "offset": 2.0 }
+		]
+	},
+	{
+		"delay": 24.0,
+		"is_huge": false,
+		"spawns": [
+			{ "zombie": ExtResource("12_zbuck"), "lane": 0, "offset": 0.0 },
+			{ "zombie": ExtResource("12_zbuck"), "lane": 3, "offset": 1.0 },
+			{ "zombie": ExtResource("12_zbuck"), "lane": 4, "offset": 1.5 },
+			{ "zombie": ExtResource("11_zcone"), "lane": 2, "offset": 2.5 },
+			{ "zombie": ExtResource("10_znorm"), "lane": 1, "offset": 3.5 }
+		]
+	},
+	{
+		"delay": 30.0,
+		"is_huge": true,
+		"spawns": [
+			{ "zombie": ExtResource("13_zflag"), "lane": 2, "offset": 0.0 },
+			{ "zombie": ExtResource("12_zbuck"), "lane": 1, "offset": 1.0 },
+			{ "zombie": ExtResource("12_zbuck"), "lane": 2, "offset": 1.5 },
+			{ "zombie": ExtResource("12_zbuck"), "lane": 3, "offset": 2.0 },
+			{ "zombie": ExtResource("11_zcone"), "lane": 0, "offset": 2.5 },
+			{ "zombie": ExtResource("11_zcone"), "lane": 4, "offset": 3.0 },
+			{ "zombie": ExtResource("10_znorm"), "lane": 0, "offset": 3.5 },
+			{ "zombie": ExtResource("10_znorm"), "lane": 4, "offset": 4.0 }
+		]
+	}
+]
+

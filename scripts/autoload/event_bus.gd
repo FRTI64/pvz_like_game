@@ -29,4 +29,5 @@ signal final_wave_warning()
 signal game_paused_toggled(is_paused: bool)
 signal game_over(won: bool)
 signal restart_requested()
+signal return_to_main_menu_requested()
 

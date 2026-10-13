@@ -161,8 +161,8 @@
     .modal.win h1 { color: #4caf50; }
     .modal.lose h1 { color: #f44336; }
     .modal button {
-      padding: 12px 30px;
-      font-size: 18px;
+      padding: 12px 26px;
+      font-size: 17px;
       font-weight: bold;
       background: #4caf50;
       color: #fff;
@@ -170,15 +170,195 @@
       border-radius: 6px;
       cursor: pointer;
       box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      transition: filter 0.15s, transform 0.1s;
     }
     .modal button:hover { background: #45a049; }
+    .modal-btn-group {
+      display: flex;
+      gap: 16px;
+      margin-top: 15px;
+    }
+    .btn-secondary {
+      background: #546e7a !important;
+    }
+    .btn-secondary:hover {
+      background: #455a64 !important;
+    }
+    .btn-menu {
+      background: #3f51b5 !important;
+    }
+    .btn-menu:hover {
+      background: #303f9f !important;
+    }
+
+    /* Main Menu Styles */
+    .menu-screen {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: radial-gradient(circle at center, #1e331b 0%, #0d1a0c 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      z-index: 90;
+      padding: 24px 30px;
+    }
+    .menu-header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .menu-title {
+      font-size: 44px;
+      font-weight: 900;
+      color: #ffd54f;
+      text-shadow: 0 4px 10px rgba(0,0,0,0.8), 0 0 20px rgba(255,213,79,0.4);
+      letter-spacing: 2px;
+      margin-bottom: 4px;
+    }
+    .menu-subtitle {
+      font-size: 18px;
+      color: #a5d6a7;
+      font-weight: 600;
+      letter-spacing: 1px;
+    }
+    .level-select-title {
+      font-size: 20px;
+      font-weight: bold;
+      color: #e0e0e0;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .level-select-title::before, .level-select-title::after {
+      content: '';
+      display: inline-block;
+      width: 50px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #4caf50);
+    }
+    .level-select-title::after {
+      background: linear-gradient(90deg, #4caf50, transparent);
+    }
+    .level-cards-container {
+      display: flex;
+      gap: 20px;
+      width: 100%;
+      max-width: 1080px;
+      justify-content: center;
+      align-items: stretch;
+      margin-bottom: 20px;
+    }
+    .level-card {
+      flex: 1;
+      background: linear-gradient(180deg, #283a23 0%, #172414 100%);
+      border: 2px solid #3d5834;
+      border-radius: 10px;
+      padding: 18px 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+    }
+    .level-card:hover {
+      transform: translateY(-5px);
+      border-color: #81c784;
+      box-shadow: 0 12px 28px rgba(76, 175, 80, 0.3);
+    }
+    .level-card-badge {
+      align-self: flex-start;
+      font-size: 11px;
+      font-weight: bold;
+      padding: 3px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .level-card-name {
+      font-size: 20px;
+      font-weight: bold;
+      color: #fff;
+      margin-bottom: 3px;
+    }
+    .level-card-subname {
+      font-size: 12px;
+      color: #9e9e9e;
+      margin-bottom: 10px;
+    }
+    .level-card-desc {
+      font-size: 13px;
+      color: #c8e6c9;
+      line-height: 1.5;
+      margin-bottom: 12px;
+      flex-grow: 1;
+    }
+    .level-card-info {
+      font-size: 12px;
+      color: #ffe082;
+      background: rgba(0,0,0,0.3);
+      padding: 6px 10px;
+      border-radius: 4px;
+      margin-bottom: 14px;
+    }
+    .level-card-btn {
+      width: 100%;
+      padding: 10px;
+      font-size: 15px;
+      font-weight: bold;
+      color: #fff;
+      background: linear-gradient(180deg, #4caf50 0%, #2e7d32 100%);
+      border: 1px solid #81c784;
+      border-radius: 6px;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+      transition: filter 0.15s, transform 0.1s;
+    }
+    .level-card-btn:hover {
+      filter: brightness(1.15);
+      transform: scale(1.02);
+    }
+    .menu-footer-tips {
+      font-size: 13px;
+      color: #81c784;
+      opacity: 0.85;
+      text-align: center;
+    }
+    .menu-nav-btn {
+      pointer-events: auto;
+      background: #7a5435;
+      border: 3px solid #4a301e;
+      border-radius: 6px;
+      padding: 8px 14px;
+      cursor: pointer;
+      font-weight: bold;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+      margin-left: 12px;
+    }
+    .menu-nav-btn:hover { background: #8f6542; }
   </style>
 </head>
 <body>
   <div id="game-container">
     <canvas id="canvas" width="1280" height="720"></canvas>
 
-    <div class="hud-overlay">
+    <!-- Main Menu Screen -->
+    <div id="main-menu-screen" class="menu-screen">
+      <div class="menu-header">
+        <h1 class="menu-title">PLANTS VS ZOMBIES</h1>
+        <div class="menu-subtitle">植物大战僵尸 · 网页版</div>
+      </div>
+      <div class="level-select-title">关卡选择</div>
+      <div class="level-cards-container" id="level-cards-container"></div>
+      <div class="menu-footer-tips">游戏过程中可随时点击右上角【菜单】按钮暂停或返回主界面</div>
+    </div>
+
+    <!-- HUD Overlay -->
+    <div class="hud-overlay" id="hud-overlay" style="display: none; width: calc(100% - 20px);">
       <div class="sun-box">
         <div class="sun-icon"></div>
         <span id="sun-count">150</span>
@@ -187,14 +367,32 @@
       <button class="shovel-btn" id="shovel-btn" onclick="toggleShovel()">
         <span>⛏️</span> Shovel
       </button>
+      <button class="menu-nav-btn" id="hud-menu-btn" onclick="openInGameMenu()">
+        <span>📋</span> 菜单
+      </button>
     </div>
 
-    <div class="progress-box" id="progress-box">Wave 1 / 5</div>
+    <div class="progress-box" id="progress-box" style="display: none;">Wave 1 / 5</div>
     <div class="banner" id="wave-banner">A Huge Wave of Zombies is Approaching!</div>
 
+    <!-- In-Game Pause Modal -->
+    <div class="modal" id="pause-modal">
+      <h1 style="color: #ffd54f;">游戏暂停</h1>
+      <p id="pause-level-info" style="color: #a5d6a7; margin-bottom: 22px; font-size: 18px;"></p>
+      <div class="modal-btn-group">
+        <button onclick="resumeGame()">继续游戏</button>
+        <button class="btn-secondary" onclick="restartLevel()">重新开始</button>
+        <button class="btn-menu" onclick="returnToMainMenu()">返回主界面</button>
+      </div>
+    </div>
+
+    <!-- Game Over / Victory Modal -->
     <div class="modal" id="game-modal">
       <h1 id="modal-title">VICTORY!</h1>
-      <button onclick="restartGame()">Play Again</button>
+      <div class="modal-btn-group">
+        <button id="modal-retry-btn" onclick="restartLevel()">再玩一次</button>
+        <button class="btn-menu" onclick="returnToMainMenu()">返回主界面</button>
+      </div>
     </div>
   </div>
 
@@ -298,11 +496,71 @@
       { id: 'chomper', name: 'Chomper', cost: 150, cd: 7.5, hp: 300, color: '#ab47bc' }
     ];
 
+    // --- Level Definitions & Game State ---
+    const LEVELS = [
+      {
+        id: 1,
+        name: '关卡 1: 前院草坪',
+        subname: 'Front Yard (Day)',
+        badge: '★ 入门 · Easy',
+        badgeColor: '#4caf50',
+        desc: '• 5波阶梯式进攻<br>• 阳光掉落频率适中<br>• 掌握基础植物攻防搭配',
+        initialSun: 150,
+        sunInterval: 8.5,
+        waves: [
+          { delay: 12, zombies: [{ type: 'normal', lane: 2 }] },
+          { delay: 18, zombies: [{ type: 'normal', lane: 1 }, { type: 'normal', lane: 3 }] },
+          { delay: 20, zombies: [{ type: 'conehead', lane: 2 }, { type: 'normal', lane: 0 }, { type: 'normal', lane: 4 }] },
+          { delay: 24, isHuge: true, zombies: [{ type: 'flag', lane: 2 }, { type: 'conehead', lane: 1 }, { type: 'buckethead', lane: 3 }, { type: 'normal', lane: 0 }, { type: 'normal', lane: 4 }] },
+          { delay: 28, isHuge: true, zombies: [{ type: 'flag', lane: 1 }, { type: 'buckethead', lane: 2 }, { type: 'buckethead', lane: 3 }, { type: 'conehead', lane: 0 }, { type: 'conehead', lane: 4 }, { type: 'normal', lane: 2 }] }
+        ]
+      },
+      {
+        id: 2,
+        name: '关卡 2: 夜幕突袭',
+        subname: 'Nightfall Infiltration',
+        badge: '★★ 进阶 · Normal',
+        badgeColor: '#ff9800',
+        desc: '• 6波紧凑突击攻势<br>• 路障与铁桶僵尸更早登场<br>• 阳光掉落频率降低',
+        initialSun: 100,
+        sunInterval: 9.5,
+        waves: [
+          { delay: 10, zombies: [{ type: 'normal', lane: 2 }] },
+          { delay: 15, zombies: [{ type: 'conehead', lane: 0 }, { type: 'normal', lane: 3 }] },
+          { delay: 18, zombies: [{ type: 'conehead', lane: 1 }, { type: 'normal', lane: 4 }, { type: 'normal', lane: 2 }] },
+          { delay: 22, isHuge: true, zombies: [{ type: 'flag', lane: 2 }, { type: 'buckethead', lane: 3 }, { type: 'conehead', lane: 1 }, { type: 'normal', lane: 0 }, { type: 'normal', lane: 4 }] },
+          { delay: 22, zombies: [{ type: 'conehead', lane: 2 }, { type: 'buckethead', lane: 1 }, { type: 'conehead', lane: 3 }, { type: 'normal', lane: 4 }] },
+          { delay: 26, isHuge: true, zombies: [{ type: 'flag', lane: 2 }, { type: 'buckethead', lane: 0 }, { type: 'buckethead', lane: 4 }, { type: 'conehead', lane: 1 }, { type: 'conehead', lane: 3 }, { type: 'normal', lane: 2 }] }
+        ]
+      },
+      {
+        id: 3,
+        name: '关卡 3: 尸潮狂欢',
+        subname: 'Zombie Onslaught',
+        badge: '★★★ 挑战 · Hard',
+        badgeColor: '#f44336',
+        desc: '• 7波高压极限尸潮<br>• 旗帜与铁桶大军连番围攻<br>• 考验火力阵型与应急反应',
+        initialSun: 200,
+        sunInterval: 7.5,
+        waves: [
+          { delay: 8, zombies: [{ type: 'normal', lane: 1 }, { type: 'conehead', lane: 3 }] },
+          { delay: 14, zombies: [{ type: 'buckethead', lane: 2 }, { type: 'normal', lane: 0 }, { type: 'conehead', lane: 4 }] },
+          { delay: 18, isHuge: true, zombies: [{ type: 'flag', lane: 2 }, { type: 'conehead', lane: 1 }, { type: 'buckethead', lane: 3 }, { type: 'normal', lane: 0 }, { type: 'normal', lane: 4 }] },
+          { delay: 20, zombies: [{ type: 'buckethead', lane: 1 }, { type: 'buckethead', lane: 2 }, { type: 'conehead', lane: 3 }, { type: 'normal', lane: 0 }, { type: 'normal', lane: 4 }] },
+          { delay: 22, isHuge: true, zombies: [{ type: 'flag', lane: 0 }, { type: 'flag', lane: 4 }, { type: 'buckethead', lane: 2 }, { type: 'conehead', lane: 1 }, { type: 'conehead', lane: 3 }] },
+          { delay: 22, zombies: [{ type: 'buckethead', lane: 0 }, { type: 'buckethead', lane: 3 }, { type: 'buckethead', lane: 4 }, { type: 'conehead', lane: 2 }, { type: 'normal', lane: 1 }] },
+          { delay: 26, isHuge: true, zombies: [{ type: 'flag', lane: 2 }, { type: 'buckethead', lane: 1 }, { type: 'buckethead', lane: 2 }, { type: 'buckethead', lane: 3 }, { type: 'conehead', lane: 0 }, { type: 'conehead', lane: 4 }, { type: 'normal', lane: 0 }, { type: 'normal', lane: 4 }] }
+        ]
+      }
+    ];
+
+    let currentLevel = LEVELS[0];
+    let waves = currentLevel.waves;
     let sun = 150;
     let selectedPlant = null;
     let isShovelActive = false;
     let hoveredCell = { col: -1, row: -1 };
-    let gameState = 'PLAYING';
+    let gameState = 'MENU';
 
     const grid = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
     const projectiles = [];
@@ -315,17 +573,20 @@
     const cardCooldowns = {};
     PLANT_DEFS.forEach(p => cardCooldowns[p.id] = 0);
 
-    // Initialize LawnMowers
-    for (let r = 0; r < ROWS; r++) {
-      lawnMowers.push({
-        row: r,
-        x: 205,
-        y: GRID_Y + r * CELL_H + CELL_H / 2,
-        active: false,
-        triggered: false,
-        speed: 650
-      });
+    function resetLawnMowers() {
+      lawnMowers.length = 0;
+      for (let r = 0; r < ROWS; r++) {
+        lawnMowers.push({
+          row: r,
+          x: 205,
+          y: GRID_Y + r * CELL_H + CELL_H / 2,
+          active: false,
+          triggered: false,
+          speed: 650
+        });
+      }
     }
+    resetLawnMowers();
 
     // Build Deck UI
     const deckElem = document.getElementById('card-deck');
@@ -344,6 +605,7 @@
     });
 
     function selectCard(plant) {
+      if (gameState !== 'PLAYING') return;
       initAudio();
       if (isShovelActive) toggleShovel();
       if (sun < plant.cost || cardCooldowns[plant.id] > 0) return;
@@ -356,6 +618,7 @@
     }
 
     function toggleShovel() {
+      if (gameState !== 'PLAYING') return;
       initAudio();
       if (selectedPlant) selectedPlant = null;
       isShovelActive = !isShovelActive;
@@ -376,20 +639,117 @@
       });
     }
 
-    // --- Waves & Spawning ---
-    const waves = [
-      { delay: 12, zombies: [{ type: 'normal', lane: 2 }] },
-      { delay: 18, zombies: [{ type: 'normal', lane: 1 }, { type: 'normal', lane: 3 }] },
-      { delay: 20, zombies: [{ type: 'conehead', lane: 2 }, { type: 'normal', lane: 0 }, { type: 'normal', lane: 4 }] },
-      { delay: 24, isHuge: true, zombies: [{ type: 'flag', lane: 2 }, { type: 'conehead', lane: 1 }, { type: 'buckethead', lane: 3 }, { type: 'normal', lane: 0 }, { type: 'normal', lane: 4 }] },
-      { delay: 28, isHuge: true, zombies: [{ type: 'flag', lane: 1 }, { type: 'buckethead', lane: 2 }, { type: 'buckethead', lane: 3 }, { type: 'conehead', lane: 0 }, { type: 'conehead', lane: 4 }, { type: 'normal', lane: 2 }] }
-    ];
+    function initMainMenu() {
+      const container = document.getElementById('level-cards-container');
+      if (!container) return;
+      container.innerHTML = '';
+      LEVELS.forEach(lvl => {
+        const card = document.createElement('div');
+        card.className = 'level-card';
+        card.innerHTML = `
+          <div>
+            <div class="level-card-badge" style="background:${lvl.badgeColor}22; color:${lvl.badgeColor}; border:1px solid ${lvl.badgeColor}55;">${lvl.badge}</div>
+            <div class="level-card-name">${lvl.name}</div>
+            <div class="level-card-subname">${lvl.subname}</div>
+            <div class="level-card-desc">${lvl.desc}</div>
+          </div>
+          <div>
+            <div class="level-card-info">☀️ 初始阳光: <strong>${lvl.initialSun}</strong> · 🌊 波次: <strong>${lvl.waves.length}</strong></div>
+            <button class="level-card-btn" onclick="startLevel(${lvl.id})">进入关卡</button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function startLevel(levelId) {
+      initAudio();
+      currentLevel = LEVELS.find(l => l.id === levelId) || LEVELS[0];
+      waves = currentLevel.waves;
+      sun = currentLevel.initialSun;
+      selectedPlant = null;
+      isShovelActive = false;
+      document.getElementById('shovel-btn').classList.remove('active');
+
+      // Clear grid & entities
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          grid[r][c] = null;
+        }
+      }
+      projectiles.length = 0;
+      zombies.length = 0;
+      sunItems.length = 0;
+      resetLawnMowers();
+      PLANT_DEFS.forEach(p => cardCooldowns[p.id] = 0);
+
+      // Waves
+      currentWaveIdx = 0;
+      waveTimer = waves[0].delay;
+      allWavesSpawned = false;
+      naturalSunTimer = 4.0;
+
+      // Switch UI
+      document.getElementById('main-menu-screen').style.display = 'none';
+      document.getElementById('pause-modal').style.display = 'none';
+      document.getElementById('game-modal').style.display = 'none';
+      document.getElementById('wave-banner').style.opacity = '0';
+      document.getElementById('hud-overlay').style.display = 'flex';
+      document.getElementById('progress-box').style.display = 'block';
+      document.getElementById('progress-box').textContent = `Wave 0 / ${waves.length}`;
+
+      updateUI();
+      gameState = 'PLAYING';
+      playSound('splat');
+    }
+
+    function openInGameMenu() {
+      if (gameState !== 'PLAYING') return;
+      gameState = 'PAUSED';
+      document.getElementById('pause-level-info').textContent = currentLevel ? `${currentLevel.name} (${currentLevel.subname})` : '';
+      document.getElementById('pause-modal').style.display = 'flex';
+    }
+
+    function resumeGame() {
+      if (gameState !== 'PAUSED') return;
+      document.getElementById('pause-modal').style.display = 'none';
+      gameState = 'PLAYING';
+    }
+
+    function restartLevel() {
+      if (!currentLevel) currentLevel = LEVELS[0];
+      startLevel(currentLevel.id);
+    }
+
+    function returnToMainMenu() {
+      gameState = 'MENU';
+      document.getElementById('pause-modal').style.display = 'none';
+      document.getElementById('game-modal').style.display = 'none';
+      document.getElementById('hud-overlay').style.display = 'none';
+      document.getElementById('progress-box').style.display = 'none';
+      document.getElementById('wave-banner').style.opacity = '0';
+
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          grid[r][c] = null;
+        }
+      }
+      projectiles.length = 0;
+      zombies.length = 0;
+      sunItems.length = 0;
+      resetLawnMowers();
+      selectedPlant = null;
+      isShovelActive = false;
+
+      document.getElementById('main-menu-screen').style.display = 'flex';
+    }
 
     let currentWaveIdx = 0;
     let waveTimer = waves[0].delay;
     let allWavesSpawned = false;
 
     function spawnZombie(type, lane) {
+      if (gameState !== 'PLAYING') return;
       let hp = 200, armor = 0, speed = 24;
       if (type === 'conehead') armor = 370;
       if (type === 'buckethead') armor = 1100;
@@ -436,6 +796,10 @@
     }
 
     canvas.addEventListener('mousemove', e => {
+      if (gameState !== 'PLAYING') {
+        hoveredCell = { col: -1, row: -1 };
+        return;
+      }
       const { x, y } = getCanvasCoords(e);
       const col = Math.floor((x - GRID_X) / CELL_W);
       const row = Math.floor((y - GRID_Y) / CELL_H);
@@ -447,6 +811,7 @@
     });
 
     canvas.addEventListener('click', e => {
+      if (gameState !== 'PLAYING') return;
       initAudio();
       const { x, y } = getCanvasCoords(e);
 
@@ -502,6 +867,7 @@
 
     canvas.addEventListener('contextmenu', e => {
       e.preventDefault();
+      if (gameState !== 'PLAYING') return;
       if (selectedPlant) selectedPlant = null;
       if (isShovelActive) isShovelActive = false;
       document.getElementById('shovel-btn').classList.remove('active');
@@ -757,13 +1123,11 @@
       gameState = won ? 'VICTORY' : 'GAME_OVER';
       const modal = document.getElementById('game-modal');
       const title = document.getElementById('modal-title');
+      const retryBtn = document.getElementById('modal-retry-btn');
       modal.className = `modal ${won ? 'win' : 'lose'}`;
       modal.style.display = 'flex';
       title.textContent = won ? 'VICTORY!' : 'THE ZOMBIES ATE YOUR BRAINS!';
-    }
-
-    function restartGame() {
-      location.reload();
+      if (retryBtn) retryBtn.textContent = won ? '再玩一次' : '再试一次';
     }
 
     // --- Rendering ---
@@ -920,6 +1284,8 @@
       render();
       requestAnimationFrame(gameLoop);
     }
+    initMainMenu();
+    returnToMainMenu();
     requestAnimationFrame(gameLoop);
   </script>
 </body>

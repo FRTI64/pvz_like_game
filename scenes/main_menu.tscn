@@ -1,0 +1,284 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/main_menu.gd" id="1_menu"]
+
+[node name="MainMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_menu")
+
+[node name="Header" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 22.0
+offset_bottom = 125.0
+grow_horizontal = 2
+theme_override_constants/separation = 6
+alignment = 1
+
+[node name="Title" type="Label" parent="Header"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.86, 0.25, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 3
+theme_override_font_sizes/font_size = 46
+text = "PLANTS VS. ZOMBIES"
+horizontal_alignment = 1
+
+[node name="Subtitle" type="Label" parent="Header"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72, 0.92, 0.65, 1)
+theme_override_font_sizes/font_size = 20
+text = "网页版 · 关卡选择"
+horizontal_alignment = 1
+
+[node name="ContentContainer" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="LevelGrid" type="HBoxContainer" parent="ContentContainer"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -540.0
+offset_top = -180.0
+offset_right = 540.0
+offset_bottom = 260.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 30
+alignment = 1
+
+[node name="LevelCard1" type="Panel" parent="ContentContainer/LevelGrid"]
+custom_minimum_size = Vector2(330, 440)
+layout_mode = 2
+
+[node name="VBox" type="VBoxContainer" parent="ContentContainer/LevelGrid/LevelCard1"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 18.0
+offset_top = 18.0
+offset_right = -18.0
+offset_bottom = -18.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 12
+
+[node name="Badge" type="Label" parent="ContentContainer/LevelGrid/LevelCard1/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.85, 0.38, 1)
+theme_override_font_sizes/font_size = 14
+text = "★ 入门 · EASY"
+horizontal_alignment = 1
+
+[node name="LevelNum" type="Label" parent="ContentContainer/LevelGrid/LevelCard1/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "关卡 1: 前院草坪"
+horizontal_alignment = 1
+
+[node name="Subtitle" type="Label" parent="ContentContainer/LevelGrid/LevelCard1/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 14
+text = "Front Yard (Day)"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="ContentContainer/LevelGrid/LevelCard1/VBox"]
+layout_mode = 2
+
+[node name="Desc" type="Label" parent="ContentContainer/LevelGrid/LevelCard1/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_colors/font_color = Color(0.85, 0.85, 0.85, 1)
+theme_override_constants/line_spacing = 6
+theme_override_font_sizes/font_size = 15
+text = "• 5 波僵尸阶梯式攻势
+• 阳光掉落频率适中
+• 适合熟悉各类植物防御
+• 初始阳光: 150"
+autowrap_mode = 2
+
+[node name="StartBtn" type="Button" parent="ContentContainer/LevelGrid/LevelCard1"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = -68.0
+offset_right = -20.0
+offset_bottom = -20.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_font_sizes/font_size = 18
+text = "进入关卡 1"
+
+[node name="LevelCard2" type="Panel" parent="ContentContainer/LevelGrid"]
+custom_minimum_size = Vector2(330, 440)
+layout_mode = 2
+
+[node name="VBox" type="VBoxContainer" parent="ContentContainer/LevelGrid/LevelCard2"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 18.0
+offset_top = 18.0
+offset_right = -18.0
+offset_bottom = -18.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 12
+
+[node name="Badge" type="Label" parent="ContentContainer/LevelGrid/LevelCard2/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.65, 0.2, 1)
+theme_override_font_sizes/font_size = 14
+text = "★★ 进阶 · NORMAL"
+horizontal_alignment = 1
+
+[node name="LevelNum" type="Label" parent="ContentContainer/LevelGrid/LevelCard2/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "关卡 2: 夜幕突袭"
+horizontal_alignment = 1
+
+[node name="Subtitle" type="Label" parent="ContentContainer/LevelGrid/LevelCard2/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 14
+text = "Nightfall Infiltration"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="ContentContainer/LevelGrid/LevelCard2/VBox"]
+layout_mode = 2
+
+[node name="Desc" type="Label" parent="ContentContainer/LevelGrid/LevelCard2/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_colors/font_color = Color(0.85, 0.85, 0.85, 1)
+theme_override_constants/line_spacing = 6
+theme_override_font_sizes/font_size = 15
+text = "• 6 波紧凑僵尸突袭
+• 路障与铁桶僵尸更早登场
+• 阳光掉落频率降低
+• 初始阳光: 100"
+autowrap_mode = 2
+
+[node name="StartBtn" type="Button" parent="ContentContainer/LevelGrid/LevelCard2"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = -68.0
+offset_right = -20.0
+offset_bottom = -20.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_font_sizes/font_size = 18
+text = "进入关卡 2"
+
+[node name="LevelCard3" type="Panel" parent="ContentContainer/LevelGrid"]
+custom_minimum_size = Vector2(330, 440)
+layout_mode = 2
+
+[node name="VBox" type="VBoxContainer" parent="ContentContainer/LevelGrid/LevelCard3"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 18.0
+offset_top = 18.0
+offset_right = -18.0
+offset_bottom = -18.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 12
+
+[node name="Badge" type="Label" parent="ContentContainer/LevelGrid/LevelCard3/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.3, 0.25, 1)
+theme_override_font_sizes/font_size = 14
+text = "★★★ 挑战 · HARD"
+horizontal_alignment = 1
+
+[node name="LevelNum" type="Label" parent="ContentContainer/LevelGrid/LevelCard3/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "关卡 3: 尸潮狂欢"
+horizontal_alignment = 1
+
+[node name="Subtitle" type="Label" parent="ContentContainer/LevelGrid/LevelCard3/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 14
+text = "Zombie Onslaught"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="ContentContainer/LevelGrid/LevelCard3/VBox"]
+layout_mode = 2
+
+[node name="Desc" type="Label" parent="ContentContainer/LevelGrid/LevelCard3/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_colors/font_color = Color(0.85, 0.85, 0.85, 1)
+theme_override_constants/line_spacing = 6
+theme_override_font_sizes/font_size = 15
+text = "• 7 波高压极限尸潮
+• 旗帜与铁桶大军连番围攻
+• 考验火力阵型与应急反应
+• 初始阳光: 200"
+autowrap_mode = 2
+
+[node name="StartBtn" type="Button" parent="ContentContainer/LevelGrid/LevelCard3"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = -68.0
+offset_right = -20.0
+offset_bottom = -20.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_font_sizes/font_size = 18
+text = "进入关卡 3"
+
+[node name="Footer" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -40.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.65, 0.75, 0.65, 0.9)
+theme_override_font_sizes/font_size = 14
+text = "战斗中可点击右上角 [菜单] 按钮暂停游戏或随时返回主界面"
+horizontal_alignment = 1
+vertical_alignment = 1
+

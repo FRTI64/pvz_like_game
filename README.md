@@ -51,9 +51,12 @@ pvz_like_game/
 │   │   ├── buckethead_zombie.tres    # 铁桶僵尸 (200 HP + 1100 护甲, 极高防御)
 │   │   └── flag_zombie.tres          # 旗帜僵尸 (移速加快25%, 引领大波次)
 │   └── levels/
-│       └── level_1.tres              # 第1关：5波阶梯式进攻 + 旗帜突袭
+│       ├── level_1.tres              # 第1关：5波阶梯式进攻 + 旗帜突袭
+│       ├── level_2.tres              # 第2关：6波夜幕突袭 + 路障/铁桶夹攻
+│       └── level_3.tres              # 第3关：7波终极尸潮 + 铁桶大军连番围攻
 ├── scenes/
-│   ├── main.tscn                     # 游戏主场景 (草坪、管理器、小推车、HUD)
+│   ├── main_menu.tscn                # 主界面与关卡选择场景
+│   ├── main.tscn                     # 关卡战斗场景 (草坪、管理器、小推车、HUD)
 │   ├── plants/                       # 植物场景实体
 │   ├── zombies/                      # 僵尸场景实体
 │   ├── projectiles/                  # 弹道实体 (豌豆、冰豌豆)

@@ -9,10 +9,14 @@ extends Node2D
 @onready var hud: HUD = $HUD
 
 func _ready() -> void:
-	if default_level == null:
+	if GameManager.selected_level_data != null:
+		default_level = GameManager.selected_level_data
+	elif default_level == null:
 		default_level = load("res://data/levels/level_1.tres")
 	
 	GameManager.start_game(default_level.initial_sun)
+	if sun_manager != null and default_level.natural_sun_interval > 0.0:
+		sun_manager.natural_drop_interval = default_level.natural_sun_interval
 	wave_manager.start_level(default_level)
 
 func _draw() -> void:

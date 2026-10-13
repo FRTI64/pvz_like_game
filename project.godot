@@ -1,6 +1,10 @@
 ; Engine configuration file.
 ; It's best edited using the editor UI and not directly,
-; but it can be edited safely.
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
 
 config_version=5
 
@@ -9,7 +13,7 @@ config_version=5
 config/name="Plants vs Zombies Web"
 config/description="A modular, web-ready Plants vs Zombies game framework for Godot 4.7.2"
 config/version="1.0.0"
-run/main_scene="res://scenes/main.tscn"
+run/main_scene="res://scenes/main_menu.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 boot_splash/bg_color=Color(0.133333, 0.207843, 0.121569, 1)
 config/icon="res://icon.svg"
@@ -24,24 +28,24 @@ GameManager="*res://scripts/autoload/game_manager.gd"
 
 window/size/viewport_width=1280
 window/size/viewport_height=720
-window/size/resizable=true
 window/stretch/mode="canvas_items"
-window/stretch/aspect="keep"
 window/handheld/emulate_touch_from_mouse=true
 window/handheld/emulate_mouse_from_touch=true
 
-[rendering]
+[dotnet]
 
-renderer/rendering_method="gl_compatibility"
-renderer/rendering_method.web="gl_compatibility"
-textures/vram_compression/import_etc2_astc=true
-environment/defaults/default_clear_color=Color(0.18, 0.24, 0.15, 1)
-
-[input_devices]
-
-pointing/emulate_touch_from_mouse=true
+project/assembly_name="Plants vs Zombies Web"
 
 [gui]
 
 theme/custom_font_antialiasing=1
 
+[input_devices]
+
+pointing/emulate_touch_from_mouse=true
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+textures/vram_compression/import_etc2_astc=true
+environment/defaults/default_clear_color=Color(0.18, 0.24, 0.15, 1)

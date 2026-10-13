@@ -19,8 +19,9 @@ var default_zombie_scene: PackedScene
 
 func _ready() -> void:
 	EventBus.zombie_died.connect(_on_zombie_died)
-	if level_data != null:
-		start_level(level_data)
+	if get_parent() == null or not (get_parent() is Main):
+		if level_data != null:
+			start_level(level_data)
 
 func start_level(new_level: LevelData) -> void:
 	level_data = new_level

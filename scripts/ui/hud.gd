@@ -8,6 +8,8 @@ extends CanvasLayer
 @onready var progress_bar: ProgressBar = $WaveProgress/ProgressBar
 @onready var game_over_panel: Control = $GameOverPanel
 @onready var victory_panel: Control = $VictoryPanel
+@onready var pause_menu_panel: Control = $PauseMenuPanel
+@onready var menu_btn: Button = $MenuButton
 
 var seed_packet_scene: PackedScene
 
@@ -23,6 +25,8 @@ func _ready() -> void:
 	announcement_banner.visible = false
 	game_over_panel.visible = false
 	victory_panel.visible = false
+	if pause_menu_panel != null:
+		pause_menu_panel.visible = false
 	
 	_update_sun_display(GameManager.current_sun)
 
@@ -83,5 +87,21 @@ func _on_game_over(won: bool) -> void:
 		tween.tween_property(game_over_panel, "modulate:a", 1.0, 0.5)
 
 func _on_restart_button_pressed() -> void:
+	get_tree().paused = false
 	EventBus.restart_requested.emit()
+
+func _on_menu_button_pressed() -> void:
+	if pause_menu_panel != null:
+		var will_be_open: bool = not pause_menu_panel.visible
+		pause_menu_panel.visible = will_be_open
+		get_tree().paused = will_be_open
+
+func _on_resume_button_pressed() -> void:
+	if pause_menu_panel != null:
+		pause_menu_panel.visible = false
+	get_tree().paused = false
+
+func _on_main_menu_button_pressed() -> void:
+	get_tree().paused = false
+	EventBus.return_to_main_menu_requested.emit()
 
