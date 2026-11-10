@@ -581,15 +581,6 @@ func _build_backyard() -> void:
 		px += 146.0
 		post_i += 1
 
-	# A few sparse low bushes in front of the fence base (no continuous row).
-	var bx := fx0 + 70.0
-	var bi := 0
-	while bx < fx1 - 60.0:
-		_sphere(by, "FenceBush%d" % bi, Vector3(bx, 12.0, fence_z + 16.0),
-				20.0, C_HEDGE_DARK, Vector3(1.25, 0.7, 1.0), true, {}, 9, 5)
-		bx += 215.0 + rng.randf_range(-25.0, 45.0)
-		bi += 1
-
 
 	# Fake contact shadows along the fence + hedge base.
 	_contact_shadow(by, "FenceShadow", Vector3(1180.0, -2.0, 80.0), Vector2(2250.0, 110.0), 0.85)

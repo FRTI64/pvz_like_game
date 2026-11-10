@@ -22,24 +22,9 @@ var _board_built: bool = false
 
 func _ready() -> void:
 	_setup_camera()
-	_setup_lighting()
 	_setup_world_root()
 	_build_board()
 	_init_level()
-
-
-## The scene keeps real shadow mapping enabled for GPUs, but the shadow pass is
-## very expensive on software rasterizers and shadow maps do not render under
-## gl_compatibility + llvmpipe anyway (verified), so turn just the shadow pass
-## off when running on one.  Purely a performance adaptation.
-func _setup_lighting() -> void:
-	var sun := get_node_or_null("Sun") as DirectionalLight3D
-	if sun == null:
-		return
-	var adapter := RenderingServer.get_video_adapter_name().to_lower()
-	if adapter.contains("llvmpipe") or adapter.contains("softpipe") \
-			or adapter.contains("swiftshader") or adapter.contains("software"):
-		sun.shadow_enabled = false
 
 
 func _setup_camera() -> void:
