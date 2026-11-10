@@ -2,19 +2,19 @@ extends Node
 
 # --- Sun Economy Signals ---
 signal sun_amount_changed(new_amount: int, delta: int)
-signal sun_spawned(sun_node: Node2D)
-signal sun_collected(sun_node: Node2D, amount: int)
+signal sun_spawned(sun_node: Node3D)
+signal sun_collected(sun_node: Node3D, amount: int)
 
 # --- Plant Selection & Placement Signals ---
 signal plant_card_selected(plant_data: PlantData)
 signal plant_card_deselected()
-signal plant_placed(grid_pos: Vector2i, plant: Node2D)
-signal plant_removed(grid_pos: Vector2i, plant: Node2D)
+signal plant_placed(grid_pos: Vector2i, plant: Node3D)
+signal plant_removed(grid_pos: Vector2i, plant: Node3D)
 signal shovel_toggled(active: bool)
 
 # --- Zombie & Combat Signals ---
-signal zombie_spawned(zombie: Node2D)
-signal zombie_died(zombie: Node2D)
+signal zombie_spawned(zombie: Node3D)
+signal zombie_died(zombie: Node3D)
 signal zombie_reached_house(row: int)
 signal lawn_mower_triggered(row: int)
 

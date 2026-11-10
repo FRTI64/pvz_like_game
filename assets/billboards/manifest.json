@@ -1,0 +1,307 @@
+{
+	"capture_scale": 2.0,
+	"frame_h": 256,
+	"frame_w": 256,
+	"sheets": {
+		"i_mower": {
+			"anchor": [
+				128.0,
+				170.0
+			],
+			"bbox": [
+				54,
+				66,
+				178,
+				170
+			],
+			"file": "i_mower.png",
+			"fps": 1.0,
+			"frames": 1
+		},
+		"i_pea": {
+			"anchor": [
+				128.0,
+				128.0
+			],
+			"bbox": [
+				110,
+				110,
+				146,
+				146
+			],
+			"file": "i_pea.png",
+			"fps": 1.0,
+			"frames": 1
+		},
+		"i_snow_pea": {
+			"anchor": [
+				128.0,
+				128.0
+			],
+			"bbox": [
+				110,
+				110,
+				146,
+				146
+			],
+			"file": "i_snow_pea.png",
+			"fps": 1.0,
+			"frames": 1
+		},
+		"i_sun": {
+			"anchor": [
+				128.0,
+				128.0
+			],
+			"bbox": [
+				64,
+				64,
+				192,
+				192
+			],
+			"file": "i_sun.png",
+			"fps": 8.0,
+			"frames": 8
+		},
+		"p_cherry": {
+			"anchor": [
+				128.0,
+				172.0
+			],
+			"bbox": [
+				68,
+				61,
+				188,
+				172
+			],
+			"file": "p_cherry.png",
+			"fps": 4.0,
+			"frames": 6
+		},
+		"p_chomper_0": {
+			"anchor": [
+				128.0,
+				192.0
+			],
+			"bbox": [
+				84,
+				69,
+				172,
+				192
+			],
+			"file": "p_chomper_0.png",
+			"fps": 4.0,
+			"frames": 6
+		},
+		"p_chomper_1": {
+			"anchor": [
+				128.0,
+				192.0
+			],
+			"bbox": [
+				80,
+				65,
+				176,
+				192
+			],
+			"file": "p_chomper_1.png",
+			"fps": 4.0,
+			"frames": 6
+		},
+		"p_peashooter": {
+			"anchor": [
+				128.0,
+				204.0
+			],
+			"bbox": [
+				67,
+				80,
+				199,
+				204
+			],
+			"file": "p_peashooter.png",
+			"fps": 4.0,
+			"frames": 6
+		},
+		"p_potato_0": {
+			"anchor": [
+				128.0,
+				172.0
+			],
+			"bbox": [
+				82,
+				103,
+				174,
+				172
+			],
+			"file": "p_potato_0.png",
+			"fps": 4.0,
+			"frames": 6
+		},
+		"p_potato_1": {
+			"anchor": [
+				128.0,
+				180.0
+			],
+			"bbox": [
+				92,
+				108,
+				164,
+				180
+			],
+			"file": "p_potato_1.png",
+			"fps": 4.0,
+			"frames": 6
+		},
+		"p_repeater": {
+			"anchor": [
+				128.0,
+				204.0
+			],
+			"bbox": [
+				61,
+				80,
+				208,
+				204
+			],
+			"file": "p_repeater.png",
+			"fps": 4.0,
+			"frames": 6
+		},
+		"p_snow_pea": {
+			"anchor": [
+				128.0,
+				204.0
+			],
+			"bbox": [
+				58,
+				80,
+				199,
+				204
+			],
+			"file": "p_snow_pea.png",
+			"fps": 4.0,
+			"frames": 6
+		},
+		"p_sunflower": {
+			"anchor": [
+				128.0,
+				198.0
+			],
+			"bbox": [
+				66,
+				63,
+				190,
+				198
+			],
+			"file": "p_sunflower.png",
+			"fps": 4.0,
+			"frames": 6
+		},
+		"p_wallnut_0": {
+			"anchor": [
+				128.0,
+				192.0
+			],
+			"bbox": [
+				80,
+				68,
+				178,
+				192
+			],
+			"file": "p_wallnut_0.png",
+			"fps": 4.0,
+			"frames": 6
+		},
+		"p_wallnut_1": {
+			"anchor": [
+				128.0,
+				192.0
+			],
+			"bbox": [
+				80,
+				68,
+				178,
+				192
+			],
+			"file": "p_wallnut_1.png",
+			"fps": 4.0,
+			"frames": 6
+		},
+		"p_wallnut_2": {
+			"anchor": [
+				128.0,
+				192.0
+			],
+			"bbox": [
+				80,
+				68,
+				178,
+				192
+			],
+			"file": "p_wallnut_2.png",
+			"fps": 4.0,
+			"frames": 6
+		},
+		"z_buckethead": {
+			"anchor": [
+				128.0,
+				228.0
+			],
+			"bbox": [
+				60,
+				21,
+				172,
+				228
+			],
+			"file": "z_buckethead.png",
+			"fps": 6.4,
+			"frames": 8
+		},
+		"z_conehead": {
+			"anchor": [
+				128.0,
+				228.0
+			],
+			"bbox": [
+				60,
+				17,
+				172,
+				228
+			],
+			"file": "z_conehead.png",
+			"fps": 6.4,
+			"frames": 8
+		},
+		"z_flag": {
+			"anchor": [
+				128.0,
+				228.0
+			],
+			"bbox": [
+				60,
+				44,
+				203,
+				228
+			],
+			"file": "z_flag.png",
+			"fps": 6.4,
+			"frames": 8
+		},
+		"z_normal": {
+			"anchor": [
+				128.0,
+				228.0
+			],
+			"bbox": [
+				60,
+				56,
+				172,
+				228
+			],
+			"file": "z_normal.png",
+			"fps": 6.4,
+			"frames": 8
+		}
+	}
+}
