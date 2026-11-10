@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Plants vs Zombies - Web Preview</title>
+  <title>Plants vs Zombies - Web Preview (3D)</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
     body {
@@ -31,7 +31,7 @@
       display: block;
       width: 100%;
       height: 100%;
-      background: #243820;
+      background: linear-gradient(#8ec9e8 0%, #cfd9b9 55%, #5d7a42 100%);
     }
     .hud-overlay {
       position: absolute;
@@ -340,6 +340,55 @@
       margin-left: 12px;
     }
     .menu-nav-btn:hover { background: #8f6542; }
+
+    /* 3D loading overlay */
+    #loading-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      background: radial-gradient(circle at 50% 38%, #2a4023 0%, #101a0d 72%);
+      color: #dcedc8;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+    #loading-overlay .loading-title {
+      font-size: 26px;
+      color: #ffd54f;
+      text-shadow: 0 2px 10px #000;
+    }
+    #loading-overlay .loading-sub {
+      font-size: 13px;
+      color: #a5d6a7;
+      font-weight: 500;
+    }
+    #loading-overlay .loading-bar {
+      width: 300px;
+      height: 10px;
+      border-radius: 6px;
+      background: rgba(255,255,255,0.10);
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.22);
+    }
+    #loading-overlay .loading-bar > div {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #8bc34a, #cddc39);
+      transition: width 0.12s linear;
+    }
+    #loading-overlay.hidden { display: none; }
+    #loading-overlay .loading-error {
+      max-width: 760px;
+      font-size: 12px;
+      line-height: 1.5;
+      color: #ff8a80;
+      text-align: center;
+      white-space: pre-wrap;
+    }
   </style>
 </head>
 <body>
@@ -350,7 +399,7 @@
     <div id="main-menu-screen" class="menu-screen">
       <div class="menu-header">
         <h1 class="menu-title">PLANTS VS ZOMBIES</h1>
-        <div class="menu-subtitle">植物大战僵尸 · 网页版</div>
+        <div class="menu-subtitle">植物大战僵尸 · 3D 网页版</div>
       </div>
       <div class="level-select-title">关卡选择</div>
       <div class="level-cards-container" id="level-cards-container"></div>
@@ -394,9 +443,41 @@
         <button class="btn-menu" onclick="returnToMainMenu()">返回主界面</button>
       </div>
     </div>
+
+    <!-- Loading overlay (3D assets / shader warm-up) -->
+    <div id="loading-overlay">
+      <div class="loading-title">正在生成 3D 庭院…</div>
+      <div class="loading-bar"><div id="loading-bar-fill"></div></div>
+      <div class="loading-sub" id="loading-sub">Loading billboard sprites…</div>
+      <div class="loading-error" id="loading-error"></div>
+    </div>
   </div>
 
   <script>
+    // Error capture MUST be installed before the ES module runs, so that module
+    // evaluation / texture-load failures are visible to automated tests.
+    window.__pvzErrors = [];
+    window.__pvzReady = false;
+    window.addEventListener('error', function (e) {
+      try { window.__pvzErrors.push(String((e && (e.message || e.error)) || 'window error')); } catch (_) {}
+    });
+    window.addEventListener('unhandledrejection', function (e) {
+      var r = e && e.reason;
+      try { window.__pvzErrors.push(String((r && (r.stack || r.message)) || r)); } catch (_) {}
+    });
+  </script>
+
+  <script type="module">
+    import * as THREE from './three.module.min.js';
+    import { CAPTURE_SCALE, FRAME_W, FRAME_H, SHEETS } from './billboard_assets.js';
+
+    // =====================================================================
+    // Errors
+    // =====================================================================
+    function reportError(msg) {
+      try { window.__pvzErrors.push(String(msg)); } catch (_) {}
+    }
+
     // --- Web Audio Synthesizer (Zero asset dependency) ---
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     let audioCtx = null;
@@ -474,9 +555,12 @@
       } catch(e) {}
     }
 
-    // --- Game Data & Setup ---
+    // =====================================================================
+    // Game Data & Setup  (2D pixel-space gameplay — unchanged)
+    // =====================================================================
     const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
+    const GAME_W = 1280;
+    const GAME_H = 720;
 
     const ROWS = 5;
     const COLS = 9;
@@ -682,6 +766,7 @@
       sunItems.length = 0;
       resetLawnMowers();
       PLANT_DEFS.forEach(p => cardCooldowns[p.id] = 0);
+      resetPresentation();
 
       // Waves
       currentWaveIdx = 0;
@@ -740,6 +825,7 @@
       resetLawnMowers();
       selectedPlant = null;
       isShovelActive = false;
+      resetPresentation();
 
       document.getElementById('main-menu-screen').style.display = 'flex';
     }
@@ -748,17 +834,16 @@
     let waveTimer = waves[0].delay;
     let allWavesSpawned = false;
 
-    function spawnZombie(type, lane) {
-      if (gameState !== 'PLAYING') return;
+    function spawnZombieAt(type, lane, startX) {
       let hp = 200, armor = 0, speed = 24;
       if (type === 'conehead') armor = 370;
       if (type === 'buckethead') armor = 1100;
       if (type === 'flag') speed = 30;
 
-      zombies.push({
+      const z = {
         type,
         row: lane,
-        x: 1300,
+        x: startX === undefined ? 1300 : startX,
         y: GRID_Y + lane * CELL_H + CELL_H / 2,
         hp,
         armor,
@@ -769,7 +854,14 @@
         chilled: false,
         chillTimer: 0,
         isDead: false
-      });
+      };
+      zombies.push(z);
+      return z;
+    }
+
+    function spawnZombie(type, lane) {
+      if (gameState !== 'PLAYING') return;
+      spawnZombieAt(type, lane, 1300);
     }
 
     // Natural Sun Spawning
@@ -784,25 +876,1568 @@
       });
     }
 
-    // --- Input Handling ---
-    function getCanvasCoords(e) {
-      const rect = canvas.getBoundingClientRect();
-      const scaleX = canvas.width / rect.width;
-      const scaleY = canvas.height / rect.height;
-      return {
-        x: (e.clientX - rect.left) * scaleX,
-        y: (e.clientY - rect.top) * scaleY
+    // =====================================================================
+    // THREE.JS RENDER LAYER — presentation only, all state stays in game px
+    // =====================================================================
+    const PX = 1 / 45;                  // world units per game pixel (spec §2)
+    const CAM_TARGET = new THREE.Vector3(0, 1.2, 2.0);
+    const CAM_DIST = 23.0;              // shared final camera values (spec §2.2, lead-validated)
+    const CAM_PITCH = THREE.MathUtils.degToRad(58.0);
+    const CAM_FOV = 40;
+
+    const BASE_Y = -0.12;               // far base ground top (never coplanar with gameplay ground)
+    const PLATFORM_TOP = -0.06;         // patio / sidewalk / surrounding grass top
+    const GAME_GROUND = 0.0;            // lawn tile tops = gameplay Y (spec §2)
+
+    const BOARD_X0 = (0 - 640) * PX;
+    const BOARD_X1 = (1280 - 640) * PX;
+    const BOARD_Z0 = (0 - 360) * PX;
+    const BOARD_Z1 = (720 - 360) * PX;
+    const PLATFORM_Z1 = 9.9;                       // foreground apron extends past the 2D board
+    const GROUND_FAR_Z = (-60 - 360) * PX;         // base ground far edge; open sky above it
+    const GROUND_NEAR_Z = 42;
+    const LAWN_X0 = (GRID_X - 640) * PX;
+    const LAWN_X1 = (GRID_X + COLS * CELL_W - 640) * PX;
+    const LAWN_Z0 = (GRID_Y - 360) * PX;
+    const LAWN_Z1 = (GRID_Y + ROWS * CELL_H - 360) * PX;
+    const PATIO_X1 = LAWN_X0;
+    const SIDEWALK_X0 = LAWN_X1;
+
+    const SPRITE_W = (FRAME_W / CAPTURE_SCALE) * PX;   // world size of a billboard quad
+    const SPRITE_H = (FRAME_H / CAPTURE_SCALE) * PX;
+    const RENDER_SHADOW = 1;
+    const RENDER_PLANT = 2;
+    const RENDER_ZOMBIE = 2;
+    const RENDER_FLYING = 3;
+    const RENDER_SUN = 4;
+    const RENDER_GHOST = 5;
+    const RENDER_FX = 6;
+
+    let renderer = null;
+    let scene = null;
+    let camera = null;
+    let camBasePos = new THREE.Vector3();
+    let CAM_RIGHT = new THREE.Vector3(1, 0, 0);
+    let CAM_UP = new THREE.Vector3(0, 1, 0);
+    let assetsReady = false;
+    let firstFrameDone = false;
+    let shotEntered = false;
+    let elapsed = 0;
+    let parallax = { x: 0, y: 0 };
+    const SHOT_MODE = new URLSearchParams(location.search).get('shot') === '1';
+    const SHOT_LEVEL = (() => {
+      const lvl = parseInt(new URLSearchParams(location.search).get('level') || '', 10);
+      return (lvl >= 1 && lvl <= 3) ? lvl : 1;
+    })();
+
+    function wx(gx) { return (gx - 640) * PX; }
+    function wz(gy) { return (gy - 360) * PX; }
+
+    function makeRng(seed) {
+      let s = seed >>> 0;
+      return function () {
+        s = (s * 1664525 + 1013904223) >>> 0;
+        return s / 4294967296;
       };
     }
 
+    // ---- Tiny canvas texture helpers ----
+    function canvasTexture(w, h, draw) {
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      const g = c.getContext('2d');
+      draw(g, w, h);
+      const tex = new THREE.CanvasTexture(c);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.anisotropy = 4;
+      return tex;
+    }
+
+    function makeSkyTexture() {
+      return canvasTexture(8, 512, (g, w, h) => {
+        const grad = g.createLinearGradient(0, 0, 0, h);
+        grad.addColorStop(0.0, '#79b9e0');
+        grad.addColorStop(0.42, '#8ec9e8');
+        grad.addColorStop(0.72, '#d8e4d0');
+        grad.addColorStop(0.90, '#f0e6c4');
+        grad.addColorStop(1.0, '#f8e6bd');
+        g.fillStyle = grad; g.fillRect(0, 0, w, h);
+      });
+    }
+
+    function makeBackdropTexture() {
+      return canvasTexture(1024, 256, (g, w, h) => {
+        // Bright sky gradient (top 62% of the matte painting).
+        const sky = g.createLinearGradient(0, 0, 0, h * 0.72);
+        sky.addColorStop(0.0, '#7fbede');
+        sky.addColorStop(0.55, '#9ed6ec');
+        sky.addColorStop(0.85, '#d8e8dc');
+        sky.addColorStop(1.0, '#f2e7c8');
+        g.fillStyle = sky;
+        g.fillRect(0, 0, w, h);
+
+        const bump = (baseY, amp, step, color) => {
+          g.fillStyle = color;
+          g.beginPath();
+          g.moveTo(0, h);
+          g.lineTo(0, baseY);
+          for (let x = 0; x <= w; x += step) {
+            const y = baseY - Math.abs(Math.sin(x * 0.004 + baseY)) * amp - Math.sin(x * 0.011) * amp * 0.35;
+            g.lineTo(x, y);
+          }
+          g.lineTo(w, h);
+          g.closePath();
+          g.fill();
+        };
+        // Distant hazy hills, progressively closer / darker.
+        bump(h * 0.56, 26, 16, '#c3d8cc');
+        bump(h * 0.62, 22, 12, '#aecdb6');
+        bump(h * 0.69, 18, 10, '#98bd9f');
+        bump(h * 0.755, 14, 8, '#84ab8a');
+        // Faint tree line along the bottom edge (hidden behind the 3D fence).
+        g.fillStyle = '#6f9a6a';
+        for (let x = 0; x < w; x += 14) {
+          const r = 8 + 10 * Math.abs(Math.sin(x * 0.21));
+          g.beginPath();
+          g.arc(x, h * 0.90, r, Math.PI, 0);
+          g.fill();
+        }
+        // Bottom gradient towards local grass colour, so the seam is invisible.
+        const hem = g.createLinearGradient(0, h * 0.84, 0, h);
+        hem.addColorStop(0, 'rgba(108,150,94,0)');
+        hem.addColorStop(1, 'rgba(88,132,70,0.95)');
+        g.fillStyle = hem;
+        g.fillRect(0, h * 0.84, w, h * 0.16);
+      });
+    }
+
+    function makePlankTexture() {
+      return canvasTexture(128, 128, (g, w, h) => {
+        g.fillStyle = '#6f4e35'; g.fillRect(0, 0, w, h);
+        const rng = makeRng(99);
+        for (let i = 0; i < 260; i++) {
+          const y = rng() * h, x = rng() * w, len = 8 + rng() * 40;
+          g.strokeStyle = `rgba(${60 + rng() * 40 | 0},${40 + rng() * 26 | 0},${24 + rng() * 20 | 0},0.35)`;
+          g.lineWidth = 1;
+          g.beginPath(); g.moveTo(x, y); g.lineTo(x + len, y + (rng() - 0.5) * 2); g.stroke();
+        }
+        g.fillStyle = '#563b28';
+        g.fillRect(0, h - 6, w, 6);
+        g.fillStyle = 'rgba(255,235,205,0.10)';
+        g.fillRect(0, 0, w, 2);
+      });
+    }
+
+    function makeSidewalkTexture() {
+      return canvasTexture(128, 128, (g, w, h) => {
+        g.fillStyle = '#b8b2a4'; g.fillRect(0, 0, w, h);
+        const rng = makeRng(7);
+        for (let i = 0; i < 220; i++) {
+          g.fillStyle = `rgba(90,88,80,${0.05 + rng() * 0.08})`;
+          g.fillRect(rng() * w, rng() * h, 1.5, 1.5);
+        }
+        g.strokeStyle = '#9a9488'; g.lineWidth = 3;
+        g.beginPath(); g.moveTo(0, 2); g.lineTo(w, 2); g.stroke();
+        g.beginPath(); g.moveTo(2, 0); g.lineTo(2, h); g.stroke();
+      });
+    }
+
+    function makeGrassNoiseTexture() {
+      return canvasTexture(128, 128, (g, w, h) => {
+        g.fillStyle = '#ffffff'; g.fillRect(0, 0, w, h);
+        const rng = makeRng(31);
+        for (let i = 0; i < 700; i++) {
+          const v = 228 + rng() * 27 | 0;
+          g.fillStyle = `rgb(${v},${v},${v})`;
+          g.fillRect(rng() * w, rng() * h, 1, 2);
+        }
+      });
+    }
+
+    function makeRadialTexture(innerAlpha, stops) {
+      return canvasTexture(128, 128, (g, w, h) => {
+        const grad = g.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
+        if (stops) { stops.forEach(([o, c]) => grad.addColorStop(o, c)); }
+        else {
+          grad.addColorStop(0, `rgba(0,0,0,${innerAlpha})`);
+          grad.addColorStop(0.55, `rgba(0,0,0,${innerAlpha * 0.7})`);
+          grad.addColorStop(1, 'rgba(0,0,0,0)');
+        }
+        g.fillStyle = grad;
+        g.fillRect(0, 0, w, h);
+      });
+    }
+
+    let TEX = {};
+    function buildSharedTextures() {
+      TEX.sky = makeSkyTexture();
+      TEX.backdrop = makeBackdropTexture();
+      TEX.plank = makePlankTexture();
+      TEX.sidewalk = makeSidewalkTexture();
+      TEX.grassNoise = makeGrassNoiseTexture();
+      TEX.shadow = makeRadialTexture(0.55);
+      TEX.particle = canvasTexture(64, 64, (g, w, h) => {
+        const grad = g.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
+        grad.addColorStop(0, 'rgba(255,255,255,1)');
+        grad.addColorStop(0.35, 'rgba(255,255,255,0.85)');
+        grad.addColorStop(1, 'rgba(255,255,255,0)');
+        g.fillStyle = grad; g.fillRect(0, 0, w, h);
+      });
+    }
+
+    // ---- Renderer / camera / lights / environment ----
+    function initRenderer() {
+      renderer = new THREE.WebGLRenderer({
+        canvas,
+        antialias: true,
+        alpha: false,
+        powerPreference: 'high-performance'
+      });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setSize(GAME_W, GAME_H, false);
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.toneMapping = THREE.NoToneMapping;
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.shadowMap.autoUpdate = false;   // static diorama: shadow map rendered once
+      renderer.shadowMap.needsUpdate = true;
+
+      scene = new THREE.Scene();
+      buildSharedTextures();
+      scene.background = TEX.sky;
+
+      camera = new THREE.PerspectiveCamera(CAM_FOV, GAME_W / GAME_H, 0.1, 400);
+      camBasePos.set(
+        CAM_TARGET.x,
+        CAM_TARGET.y + CAM_DIST * Math.sin(CAM_PITCH),
+        CAM_TARGET.z + CAM_DIST * Math.cos(CAM_PITCH)
+      );
+      camera.position.copy(camBasePos);
+      camera.lookAt(CAM_TARGET);
+      camera.updateMatrixWorld();
+      updateCameraBasis();
+
+      // Lights — warm directional "sun" from upper-left-front + cool sky fill.
+      const hemi = new THREE.HemisphereLight(0xcfe4ff, 0x5a6b3a, 1.25);
+      scene.add(hemi);
+      const sunLight = new THREE.DirectionalLight(0xfff3d6, 2.5);
+      sunLight.position.set(-15, 30, 21);
+      sunLight.target.position.set(1, 0, -1);
+      sunLight.castShadow = true;
+      sunLight.shadow.mapSize.set(2048, 2048);
+      const sc = sunLight.shadow.camera;
+      sc.left = -26; sc.right = 26; sc.top = 22; sc.bottom = -22; sc.near = 1; sc.far = 90;
+      sc.updateProjectionMatrix();
+      sunLight.shadow.bias = -0.0004;
+      sunLight.shadow.normalBias = 0.025;
+      scene.add(sunLight);
+      scene.add(sunLight.target);
+
+      const bounce = new THREE.DirectionalLight(0xffe6b0, 0.45);
+      bounce.position.set(14, 8, 12);
+      scene.add(bounce);
+
+      buildEnvironment();
+      buildInteractionVisuals();
+    }
+
+    const MAT = {};
+    function buildMaterials() {
+      MAT.baseGround = new THREE.MeshLambertMaterial({ color: 0x3f5c2c });
+      MAT.grassPlatform = new THREE.MeshLambertMaterial({ color: 0x4d8039, map: TEX.grassNoise });
+      MAT.lawnUnder = new THREE.MeshLambertMaterial({ color: 0x2f6b2c });
+      MAT.lawnLight = new THREE.MeshLambertMaterial({ color: 0x56a34a });
+      MAT.lawnDark = new THREE.MeshLambertMaterial({ color: 0x4b9441 });
+      MAT.wood = new THREE.MeshLambertMaterial({ color: 0x6b4a2e });
+      MAT.woodLight = new THREE.MeshLambertMaterial({ color: 0x7d5a38 });
+      MAT.fence = new THREE.MeshLambertMaterial({ color: 0x7a5a3a });
+      MAT.patio = new THREE.MeshLambertMaterial({ color: 0x6f4e35 });
+      MAT.sidewalk = new THREE.MeshLambertMaterial({ color: 0xb8b2a4 });
+      MAT.houseWall = new THREE.MeshLambertMaterial({ color: 0xd8c39c });
+      MAT.houseRoof = new THREE.MeshLambertMaterial({ color: 0x8e4a3a });
+      MAT.houseTrim = new THREE.MeshLambertMaterial({ color: 0xefe2c4 });
+      MAT.houseDoor = new THREE.MeshLambertMaterial({ color: 0x5a3a26 });
+      MAT.window = new THREE.MeshStandardMaterial({ color: 0x9fd4e8, emissive: 0x24404d, emissiveIntensity: 0.6, roughness: 0.3, metalness: 0.1 });
+      MAT.trunk = new THREE.MeshLambertMaterial({ color: 0x6b4a2e });
+      MAT.leafA = makeFlatMat(0x3d7a33);
+      MAT.leafB = makeFlatMat(0x478a3a);
+      MAT.leafC = makeFlatMat(0x2f6b2c);
+      MAT.stone = new THREE.MeshLambertMaterial({ color: 0x9a9488 });
+      MAT.stoneLight = new THREE.MeshLambertMaterial({ color: 0xb0aa9c });
+      MAT.backdrop = new THREE.MeshBasicMaterial({ map: TEX.backdrop, fog: false, toneMapped: false });
+    }
+
+    function makeFlatMat(color) {
+      return new THREE.MeshLambertMaterial({ color, flatShading: true });
+    }
+
+    const UNIT_BOX = new THREE.BoxGeometry(1, 1, 1);
+    const UNIT_CYL = new THREE.CylinderGeometry(1, 1, 1, 7);
+    const UNIT_ICO = (() => {
+      const g = new THREE.IcosahedronGeometry(1, 0).toNonIndexed();
+      g.computeVertexNormals();
+      return g;
+    })();
+    const UNIT_CONE = (() => {
+      const g = new THREE.ConeGeometry(1, 1, 8).toNonIndexed();
+      g.computeVertexNormals();
+      return g;
+    })();
+
+    function addBox(w, h, d, x, y, z, mat, castShadow, receiveShadow) {
+      const mesh = new THREE.Mesh(UNIT_BOX, mat);
+      mesh.scale.set(w, h, d);
+      mesh.position.set(x, y, z);
+      mesh.castShadow = !!castShadow;
+      mesh.receiveShadow = receiveShadow !== false;
+      scene.add(mesh);
+      return mesh;
+    }
+
+    function addGroundPlane(w, d, x, y, z, mat) {
+      const geo = new THREE.PlaneGeometry(w, d);
+      geo.rotateX(-Math.PI / 2);
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(x, y, z);
+      mesh.receiveShadow = true;
+      scene.add(mesh);
+      return mesh;
+    }
+
+    function buildEnvironment() {
+      buildMaterials();
+
+      // ---- 1. Base ground: far edge ends at game y ≈ -60 so open sky shows above it ----
+      const groundDepth = GROUND_NEAR_Z - GROUND_FAR_Z;
+      addGroundPlane(300, groundDepth, 0, BASE_Y, (GROUND_FAR_Z + GROUND_NEAR_Z) / 2, MAT.baseGround);
+
+      // ---- 2. Board platform: patio | grass | sidewalk (tops at PLATFORM_TOP) ----
+      // Extends past the 2D board bottom as a foreground apron so the bottom of the
+      // frame never shows the scene background.
+      const platformH = PLATFORM_TOP - BASE_Y;
+      const platformMidY = (BASE_Y + PLATFORM_TOP) / 2;
+      const platformD = PLATFORM_Z1 - BOARD_Z0;
+      const platformZ = (BOARD_Z0 + PLATFORM_Z1) / 2;
+      const patioW = PATIO_X1 - BOARD_X0;
+      addBox(patioW, platformH, platformD, (BOARD_X0 + PATIO_X1) / 2, platformMidY, platformZ, MAT.patio, false, true);
+      const grassW = SIDEWALK_X0 - PATIO_X1;
+      addBox(grassW, platformH, platformD, (PATIO_X1 + SIDEWALK_X0) / 2, platformMidY, platformZ, MAT.grassPlatform, false, true);
+      const walkW = BOARD_X1 - SIDEWALK_X0;
+      addBox(walkW, platformH, platformD, (SIDEWALK_X0 + BOARD_X1) / 2, platformMidY, platformZ, MAT.sidewalk, false, true);
+
+      // patio plank overlay
+      {
+        const tex = TEX.plank.clone();
+        tex.needsUpdate = true;
+        tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+        tex.repeat.set(1, 13);
+        const mesh = addGroundPlane(patioW, platformD, (BOARD_X0 + PATIO_X1) / 2, PLATFORM_TOP + 0.002, platformZ,
+          new THREE.MeshLambertMaterial({ map: tex, color: 0xffffff }));
+        mesh.receiveShadow = true;
+      }
+      // sidewalk paver overlay
+      {
+        const tex = TEX.sidewalk.clone();
+        tex.needsUpdate = true;
+        tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+        tex.repeat.set(2, 15);
+        addGroundPlane(walkW, platformD, (SIDEWALK_X0 + BOARD_X1) / 2, PLATFORM_TOP + 0.002, platformZ,
+          new THREE.MeshLambertMaterial({ map: tex, color: 0xffffff }));
+      }
+
+      // ---- 3. Lawn underlay + raised checker tiles (tile tops exactly Y=0) ----
+      const lawnW = LAWN_X1 - LAWN_X0;
+      const lawnD = LAWN_Z1 - LAWN_Z0;
+      addBox(lawnW, BASE_Y * -1 - 0.05, lawnD, (LAWN_X0 + LAWN_X1) / 2, (BASE_Y + (GAME_GROUND - 0.05)) / 2, (LAWN_Z0 + LAWN_Z1) / 2, MAT.lawnUnder, false, true);
+
+      const cellGeo = new THREE.BoxGeometry(1, 1, 1);
+      const gap = 0.022;
+      const cellH = 0.05;
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          const isEven = (r + c) % 2 === 0;
+          const mesh = new THREE.Mesh(cellGeo, isEven ? MAT.lawnLight : MAT.lawnDark);
+          mesh.scale.set(CELL_W * PX - gap, cellH, CELL_H * PX - gap);
+          mesh.position.set(
+            wx(GRID_X + c * CELL_W + CELL_W / 2),
+            GAME_GROUND - cellH / 2,
+            wz(GRID_Y + r * CELL_H + CELL_H / 2)
+          );
+          mesh.receiveShadow = true;
+          scene.add(mesh);
+        }
+      }
+
+      // ---- 4. Wooden border frame around the lawn ----
+      const borderW = 0.24;
+      const borderTop = 0.215;
+      const borderH = borderTop - BASE_Y;
+      const borderY = (BASE_Y + borderTop) / 2;
+      addBox(borderW, borderH, lawnD + borderW * 2, LAWN_X0 - borderW / 2, borderY, (LAWN_Z0 + LAWN_Z1) / 2, MAT.wood, true, true);
+      addBox(borderW, borderH, lawnD + borderW * 2, LAWN_X1 + borderW / 2, borderY, (LAWN_Z0 + LAWN_Z1) / 2, MAT.wood, true, true);
+      addBox(lawnW, borderH, borderW, (LAWN_X0 + LAWN_X1) / 2, borderY, LAWN_Z0 - borderW / 2, MAT.wood, true, true);
+      addBox(lawnW, borderH, borderW, (LAWN_X0 + LAWN_X1) / 2, borderY, LAWN_Z1 + borderW / 2, MAT.wood, true, true);
+      // lighter top rims
+      addBox(borderW, 0.035, lawnD + borderW * 2, LAWN_X0 - borderW / 2, borderTop + 0.017, (LAWN_Z0 + LAWN_Z1) / 2, MAT.woodLight, true, true);
+      addBox(borderW, 0.035, lawnD + borderW * 2, LAWN_X1 + borderW / 2, borderTop + 0.017, (LAWN_Z0 + LAWN_Z1) / 2, MAT.woodLight, true, true);
+      addBox(lawnW, 0.035, borderW, (LAWN_X0 + LAWN_X1) / 2, borderTop + 0.017, LAWN_Z0 - borderW / 2, MAT.woodLight, true, true);
+      addBox(lawnW, 0.035, borderW, (LAWN_X0 + LAWN_X1) / 2, borderTop + 0.017, LAWN_Z1 + borderW / 2, MAT.woodLight, true, true);
+
+      // ---- 5. Foreground apron lip (front edge of the diorama) ----
+      addBox(BOARD_X1 - BOARD_X0 + 0.5, 0.30, 0.26, 0, BASE_Y + 0.15, 9.5, MAT.wood, true, true);
+      addBox(BOARD_X1 - BOARD_X0 + 0.5, 0.05, 0.30, 0, BASE_Y + 0.32, 9.5, MAT.woodLight, true, false);
+      addBox(0.26, 0.30, platformD, BOARD_X0 - 0.13, BASE_Y + 0.15, platformZ, MAT.wood, false, true);
+      addBox(0.26, 0.30, platformD, BOARD_X1 + 0.13, BASE_Y + 0.15, platformZ, MAT.wood, false, true);
+
+      buildHouse();
+      buildBackdrop();
+      buildFence();
+      buildTrees();
+      buildRightSide();
+    }
+
+    function buildHouse() {
+      // House facade to the left of the patio (outside the 2D board). Tall enough
+      // to fill the upper-left of the frame like a real front-yard view.
+      const wallX0 = -20.9, wallX1 = -14.55;
+      const wallZ0 = -8.8, wallZ1 = 7.2;
+      const wallTop = 7.9;
+      addBox(wallX1 - wallX0, wallTop - BASE_Y, wallZ1 - wallZ0,
+        (wallX0 + wallX1) / 2, (BASE_Y + wallTop) / 2, (wallZ0 + wallZ1) / 2, MAT.houseWall, true, true);
+      // roof: triangular prism extruded along Z
+      const shape = new THREE.Shape();
+      shape.moveTo(wallX0 - 0.55, wallTop - 0.18);
+      shape.lineTo(wallX1 + 0.55, wallTop - 0.18);
+      shape.lineTo((wallX0 + wallX1) / 2, wallTop + 1.55);
+      shape.closePath();
+      const roofGeo = new THREE.ExtrudeGeometry(shape, { depth: wallZ1 - wallZ0 + 1.0, bevelEnabled: false });
+      const roof = new THREE.Mesh(roofGeo, MAT.houseRoof);
+      roof.position.set(0, 0, wallZ0 - 0.5);
+      roof.castShadow = true; roof.receiveShadow = true;
+      scene.add(roof);
+      // fascia board under the eaves
+      addBox(wallX1 - wallX0 + 1.2, 0.22, 0.16, (wallX0 + wallX1) / 2, wallTop - 0.06, wallZ1 + 0.5, MAT.houseTrim, true, true);
+      // chimney
+      addBox(0.85, 1.7, 0.85, -19.3, wallTop + 1.15, -7.4, MAT.houseRoof, true, true);
+      addBox(1.0, 0.16, 1.0, -19.3, wallTop + 2.02, -7.4, MAT.houseTrim, true, false);
+
+      const frontX = wallX1 + 0.01;
+      // door
+      addBox(0.16, 2.75, 1.55, frontX, BASE_Y + 1.375, 4.1, MAT.houseDoor, true, true);
+      addBox(0.1, 2.95, 1.85, frontX - 0.05, BASE_Y + 1.475, 4.1, MAT.houseTrim, true, true);
+      addBox(1.9, 0.18, 1.0, wallX1 + 0.55, BASE_Y + 0.09, 4.1, MAT.stone, true, true);
+      // windows with cross frames
+      const windows = [
+        { y: 4.55, z: 1.2 },
+        { y: 4.55, z: -2.2 },
+        { y: 6.35, z: -0.6 }
+      ];
+      windows.forEach(w => {
+        addBox(0.16, 1.55, 1.7, frontX, w.y, w.z, MAT.houseTrim, true, true);
+        addBox(0.1, 1.3, 1.45, frontX + 0.06, w.y, w.z, MAT.window, false, false);
+        addBox(0.08, 1.3, 0.08, frontX + 0.13, w.y, w.z, MAT.houseTrim, false, false);
+        addBox(0.08, 0.08, 1.45, frontX + 0.13, w.y, w.z, MAT.houseTrim, false, false);
+      });
+      // small porch light
+      addBox(0.28, 0.28, 0.28, wallX1 + 0.18, 3.75, 5.35, MAT.houseTrim, false, false);
+    }
+
+    function buildBackdrop() {
+      // Large camera-facing matte painting of sky + distant hills. Positioned just
+      // behind the far board edge so it covers the top of the frame (the fixed
+      // camera never actually sees the real sky, see spec/lead findings).
+      const zPos = -9.36;
+      const h = 1.55;
+      const geo = new THREE.PlaneGeometry(90, h);
+      const mesh = new THREE.Mesh(geo, MAT.backdrop);
+      mesh.position.set(0, BASE_Y + h / 2, zPos);
+      mesh.receiveShadow = false;
+      scene.add(mesh);
+    }
+
+    function buildFence() {
+      const zFence = -7.15;
+      const y0 = PLATFORM_TOP;
+      const postH = 1.5;
+      const x0 = BOARD_X0 + 0.4, x1 = BOARD_X1 - 0.4;
+      for (let x = x0; x <= x1; x += 1.65) {
+        addBox(0.11, postH, 0.11, x, y0 + postH / 2, zFence, MAT.fence, true, true);
+      }
+      addBox(x1 - x0, 0.11, 0.06, (x0 + x1) / 2, y0 + 0.52, zFence + 0.03, MAT.fence, true, true);
+      addBox(x1 - x0, 0.11, 0.06, (x0 + x1) / 2, y0 + 1.08, zFence + 0.03, MAT.fence, true, true);
+      addBox(x1 - x0, 0.09, 0.09, (x0 + x1) / 2, y0 + postH + 0.02, zFence, MAT.woodLight, true, true);
+
+      // low bushes in front of the fence (soften its base line)
+      const rng = makeRng(4242);
+      for (let x = x0 + 0.6; x <= x1 - 0.4; x += 2.1) {
+        const s = 0.32 + rng() * 0.22;
+        const bush = new THREE.Mesh(UNIT_ICO, rng() > 0.5 ? MAT.leafB : MAT.leafA);
+        bush.scale.set(s * 1.25, s * 0.85, s);
+        bush.position.set(x + (rng() - 0.5) * 0.8, y0 + s * 0.7, -6.62);
+        bush.rotation.y = rng() * Math.PI;
+        bush.castShadow = true; bush.receiveShadow = true;
+        scene.add(bush);
+      }
+    }
+
+    function buildTrees() {
+      const rng = makeRng(2024);
+      const treeSpots = [
+        [-12.6, -8.55, 1.7], [-9.2, -8.8, 1.35], [-4.8, -8.6, 1.85], [-0.6, -8.9, 1.45],
+        [3.6, -8.65, 1.75], [7.8, -8.85, 1.4], [11.8, -8.6, 1.6],
+        [17.8, -4.2, 1.9], [-19.5, -8.7, 2.0]
+      ];
+      treeSpots.forEach(([x, z, s]) => {
+        makeTree(x, z, s, rng);
+      });
+    }
+
+    function makeTree(x, z, s, rng) {
+      const group = new THREE.Group();
+      group.position.set(x, BASE_Y, z);
+      group.scale.setScalar(s);
+      const trunk = new THREE.Mesh(UNIT_CYL, MAT.trunk);
+      trunk.scale.set(0.09, 1.5, 0.09);
+      trunk.position.y = 0.75;
+      trunk.castShadow = true; trunk.receiveShadow = true;
+      group.add(trunk);
+      const leafMats = [MAT.leafA, MAT.leafB, MAT.leafC];
+      const puffs = [
+        [0, 1.95, 0, 0.85],
+        [-0.42, 1.55, 0.18, 0.62],
+        [0.4, 1.72, -0.16, 0.7],
+        [0.08, 2.42, 0.05, 0.6]
+      ];
+      puffs.forEach(([px, py, pz, r], i) => {
+        const leaf = new THREE.Mesh(UNIT_ICO, leafMats[i % leafMats.length]);
+        leaf.scale.setScalar(r * (0.9 + rng() * 0.2));
+        leaf.position.set(px, py, pz);
+        leaf.rotation.set(rng() * 3, rng() * 3, rng() * 3);
+        leaf.castShadow = true; leaf.receiveShadow = true;
+        group.add(leaf);
+      });
+      scene.add(group);
+      return group;
+    }
+
+    function buildRightSide() {
+      const rng = makeRng(555);
+      // low stone wall beyond the sidewalk
+      addBox(0.5, 0.7, BOARD_Z1 - BOARD_Z0, BOARD_X1 + 0.42, BASE_Y + 0.35, 0, MAT.stone, true, true);
+      addBox(0.62, 0.09, BOARD_Z1 - BOARD_Z0, BOARD_X1 + 0.42, BASE_Y + 0.745, 0, MAT.stoneLight, true, false);
+      // hedge wall behind it
+      for (let z = -7.2; z <= 7.2; z += 1.35) {
+        const s = 0.5 + rng() * 0.2;
+        const bush = new THREE.Mesh(UNIT_ICO, rng() > 0.5 ? MAT.leafA : MAT.leafB);
+        bush.scale.set(s * 0.9, s * 1.05, s);
+        bush.position.set(BOARD_X1 + 1.05 + (rng() - 0.5) * 0.3, BASE_Y + s, z);
+        bush.rotation.y = rng() * Math.PI;
+        bush.castShadow = true; bush.receiveShadow = true;
+        scene.add(bush);
+      }
+    }
+
+    // ---- Camera helpers ----
+    function updateCameraBasis() {
+      camera.updateMatrixWorld();
+      CAM_RIGHT.setFromMatrixColumn(camera.matrixWorld, 0).normalize();
+      CAM_UP.setFromMatrixColumn(camera.matrixWorld, 1).normalize();
+    }
+
+    function updateCameraPose() {
+      let ox = 0, oy = 0;
+      if (!SHOT_MODE) {
+        ox = parallax.x * 0.22 + Math.sin(elapsed * 0.33) * 0.04;
+        oy = parallax.y * 0.09 + Math.sin(elapsed * 0.27) * 0.025;
+      }
+      camera.position.set(camBasePos.x + ox, camBasePos.y + oy, camBasePos.z);
+      camera.lookAt(CAM_TARGET);
+      updateCameraBasis();
+    }
+
+    // =====================================================================
+    // Billboards
+    // =====================================================================
+    const sheetCache = new Map();
+    const PLACEHOLDER_COLORS = {
+      p_peashooter: '#4caf50', p_sunflower: '#fbc02d', p_wallnut_0: '#8d6e63', p_wallnut_1: '#7c5f54',
+      p_wallnut_2: '#6d544a', p_cherry: '#e53935', p_snow_pea: '#29b6f6', p_potato_0: '#6d4c41',
+      p_potato_1: '#bcaaa4', p_repeater: '#2e7d32', p_chomper_0: '#ab47bc', p_chomper_1: '#9c27b0',
+      z_normal: '#81c784', z_conehead: '#ff9800', z_buckethead: '#b0bec5', z_flag: '#e53935',
+      i_pea: '#66bb6a', i_snow_pea: '#29b6f6', i_sun: '#ffeb3b', i_mower: '#d32f2f'
+    };
+
+    function makePlaceholderEntry(name) {
+      const color = PLACEHOLDER_COLORS[name] || '#9ccc65';
+      const frames = 1;
+      const tex = canvasTexture(FRAME_W, FRAME_H, (g, w, h) => {
+        g.clearRect(0, 0, w, h);
+        g.fillStyle = color;
+        g.beginPath();
+        g.arc(w / 2, h - 72, 62, 0, Math.PI * 2);
+        g.fill();
+        g.fillStyle = 'rgba(0,0,0,0.25)';
+        g.beginPath();
+        g.arc(w / 2 + 16, h - 86, 12, 0, Math.PI * 2);
+        g.fill();
+        g.fillStyle = 'rgba(255,255,255,0.35)';
+        g.beginPath();
+        g.arc(w / 2 - 20, h - 92, 14, 0, Math.PI * 2);
+        g.fill();
+      });
+      const def = { file: '(placeholder)', frames, fps: 1, anchor: [128, 200], bbox: [80, 60, 176, 200] };
+      return { def, texture: setupSheetTexture(tex, def) };
+    }
+
+    function setupSheetTexture(tex, def) {
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.magFilter = THREE.LinearFilter;
+      tex.minFilter = THREE.LinearMipmapLinearFilter;
+      tex.generateMipmaps = true;
+      tex.wrapS = THREE.ClampToEdgeWrapping;
+      tex.wrapT = THREE.ClampToEdgeWrapping;
+      const frames = Math.max(1, def.frames || 1);
+      // Inset by half a texel per side to avoid mip/neighbour frame bleeding.
+      const repX = (FRAME_W - 1) / (FRAME_W * frames);
+      const repY = (FRAME_H - 1) / FRAME_H;
+      tex.repeat.set(repX, repY);
+      tex.offset.set(0.5 / (FRAME_W * frames), 0.5 / FRAME_H);
+      return tex;
+    }
+
+    function getSheetEntry(name) {
+      if (sheetCache.has(name)) return sheetCache.get(name);
+      const def = SHEETS[name];
+      let entry;
+      if (def) {
+        const dummy = canvasTexture(FRAME_W, FRAME_H, (g) => { g.clearRect(0, 0, FRAME_W, FRAME_H); });
+        entry = { def, texture: setupSheetTexture(dummy, def) };
+      } else {
+        entry = makePlaceholderEntry(name);
+      }
+      sheetCache.set(name, entry);
+      return entry;
+    }
+
+    const texLoader = new THREE.TextureLoader();
+    async function loadSheetTextures() {
+      const names = Object.keys(SHEETS);
+      const total = Math.max(1, names.length);
+      let done = 0;
+      for (const name of names) {
+        const def = SHEETS[name];
+        try {
+          const tex = await texLoader.loadAsync(def.src);
+          setupSheetTexture(tex, def);
+          sheetCache.set(name, { def, texture: tex });
+        } catch (err) {
+          reportError('billboard texture failed: ' + name + ' — ' + (err && err.message ? err.message : err));
+        }
+        done++;
+        setLoadingProgress(done / total);
+      }
+      assetsReady = true;
+    }
+
+    function forceSheetTexture(sprite, entry) {
+      sprite.material.map = entry.texture;
+      sprite.material.needsUpdate = true;
+    }
+
+    // Sheet name resolution -------------------------------------------------
+    function plantSheetForId(id) {
+      switch (id) {
+        case 'peashooter': return 'p_peashooter';
+        case 'sunflower': return 'p_sunflower';
+        case 'wallnut': return 'p_wallnut_0';
+        case 'cherry_bomb': return 'p_cherry';
+        case 'snow_pea': return 'p_snow_pea';
+        case 'potato_mine': return 'p_potato_0';
+        case 'repeater': return 'p_repeater';
+        case 'chomper': return 'p_chomper_0';
+        default: return 'p_peashooter';
+      }
+    }
+
+    function plantSheetFor(plant) {
+      const id = plant.def.id;
+      if (id === 'wallnut') {
+        const ratio = plant.hp / Math.max(1, plant.maxHp);
+        return ratio > 0.66 ? 'p_wallnut_0' : (ratio > 0.33 ? 'p_wallnut_1' : 'p_wallnut_2');
+      }
+      if (id === 'potato_mine') return plant.armed ? 'p_potato_1' : 'p_potato_0';
+      if (id === 'chomper') return plant.chewing ? 'p_chomper_1' : 'p_chomper_0';
+      return plantSheetForId(id);
+    }
+
+    function zombieSheetFor(z) {
+      if (z.type === 'conehead') return z.armor > 0 ? 'z_conehead' : 'z_normal';
+      if (z.type === 'buckethead') return z.armor > 0 ? 'z_buckethead' : 'z_normal';
+      if (z.type === 'flag') return 'z_flag';
+      return 'z_normal';
+    }
+
+    function sheetAnchorOffsetPx(def) {
+      const anchor = def.anchor || [FRAME_W / 2, FRAME_H];
+      return {
+        x: (FRAME_W / 2 - anchor[0]) / CAPTURE_SCALE,
+        y: (anchor[1] - FRAME_H / 2) / CAPTURE_SCALE
+      };
+    }
+
+    function sheetWorldWidth(def) {
+      const bbox = def.bbox || [0, 0, FRAME_W, FRAME_H];
+      return (bbox[2] - bbox[0]) / CAPTURE_SCALE * PX;
+    }
+
+    function sheetWorldDepth(def) {
+      return sheetWorldWidth(def) * 0.55;
+    }
+
+    function makeBillboardSprite(entry, renderOrder) {
+      const mat = new THREE.SpriteMaterial({
+        map: entry.texture,
+        transparent: true,
+        depthWrite: false,
+        depthTest: true,
+        sizeAttenuation: true,
+        toneMapped: false,
+        color: 0xffffff
+      });
+      const sprite = new THREE.Sprite(mat);
+      sprite.scale.set(SPRITE_W, SPRITE_H, 1);
+      sprite.renderOrder = renderOrder;
+      scene.add(sprite);
+      return sprite;
+    }
+
+    const SHADOW_GEO = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
+    function makeBlobShadow(worldW, worldD, opacity) {
+      const mesh = new THREE.Mesh(
+        SHADOW_GEO,
+        new THREE.MeshBasicMaterial({
+          map: TEX.shadow,
+          transparent: true,
+          opacity,
+          depthWrite: false,
+          color: 0x14230d,
+          toneMapped: false
+        })
+      );
+      mesh.scale.set(worldW, 1, worldD);
+      mesh.renderOrder = RENDER_SHADOW;
+      scene.add(mesh);
+      return mesh;
+    }
+
+    const _pos = new THREE.Vector3();
+
+    function placeGroundedSprite(sprite, entry, gx, gy, groundY, extraUpGamePx) {
+      const off = sheetAnchorOffsetPx(entry.def);
+      _pos.set(wx(gx), groundY, wz(gy));
+      _pos.addScaledVector(CAM_RIGHT, off.x * PX);
+      _pos.addScaledVector(CAM_UP, (off.y + (extraUpGamePx || 0)) * PX);
+      sprite.position.copy(_pos);
+    }
+
+    function placeCenteredSprite(sprite, gx, gy, groundY, heightGamePx) {
+      _pos.set(wx(gx), groundY, wz(gy));
+      _pos.addScaledVector(CAM_UP, heightGamePx * PX);
+      sprite.position.copy(_pos);
+    }
+
+    function placeBlobShadow(shadow, gx, gy, groundY, inFront) {
+      shadow.position.set(wx(gx), groundY + 0.006, wz(gy) + (inFront === undefined ? 0.06 : inFront));
+    }
+
+    function groundYForGameX(gx) {
+      if (gx >= 0 && gx <= 1280) {
+        if (gx >= GRID_X && gx <= GRID_X + COLS * CELL_W) return GAME_GROUND;
+        return PLATFORM_TOP;
+      }
+      return BASE_Y;
+    }
+
+    // =====================================================================
+    // Entity views
+    // =====================================================================
+    const views = {
+      plants: new Map(),
+      zombies: new Map(),
+      projectiles: new Map(),
+      suns: new Map(),
+      mowers: new Map()
+    };
+    const fadeGhosts = [];
+    const bursts = [];
+    const rings = [];
+    const sunFlies = [];
+    let highlightMesh = null;
+    let ghostSprite = null;
+    let ghostShadow = null;
+    let boomLight = null;
+
+    function destroyView(v) {
+      if (v.sprite) {
+        scene.remove(v.sprite);
+        if (v.sprite.material) v.sprite.material.dispose();
+      }
+      if (v.shadow) {
+        scene.remove(v.shadow);
+        if (v.shadow.material) v.shadow.material.dispose();
+      }
+    }
+
+    function resetPresentation() {
+      if (!scene) return;
+      for (const key of Object.keys(views)) {
+        for (const v of views[key].values()) destroyView(v);
+        views[key].clear();
+      }
+      for (const g of fadeGhosts) { scene.remove(g.sprite); if (g.shadow) scene.remove(g.shadow); }
+      fadeGhosts.length = 0;
+      for (const b of bursts) { scene.remove(b.points); b.points.geometry.dispose(); b.points.material.dispose(); }
+      bursts.length = 0;
+      for (const r of rings) { scene.remove(r.mesh); r.mesh.geometry.dispose(); r.mesh.material.dispose(); }
+      rings.length = 0;
+      for (const f of sunFlies) { scene.remove(f.sprite); f.sprite.material.dispose(); }
+      sunFlies.length = 0;
+      if (ghostSprite) ghostSprite.visible = false;
+      if (ghostShadow) ghostShadow.visible = false;
+      if (highlightMesh) highlightMesh.visible = false;
+      if (boomLight) boomLight.intensity = 0;
+    }
+
+    // Plant views ----------------------------------------------------------
+    function createPlantView(plant) {
+      const entry = getSheetEntry(plantSheetFor(plant));
+      const sprite = makeBillboardSprite(entry, RENDER_PLANT);
+      const shadow = makeBlobShadow(sheetWorldWidth(entry.def), sheetWorldDepth(entry.def), 0.30);
+      const v = {
+        sprite, shadow, entry, sheet: plantSheetFor(plant),
+        age: 0, phase: plant.row * 2.1 + plant.col * 1.7,
+        flashT: 0, lastHp: plant.hp, recoilT: 0
+      };
+      return v;
+    }
+
+    function updatePlantView(v, plant, t, dt) {
+      v.age += dt;
+      const sheetName = plantSheetFor(plant);
+      if (sheetName !== v.sheet) {
+        v.sheet = sheetName;
+        v.entry = getSheetEntry(sheetName);
+        forceSheetTexture(v.sprite, v.entry);
+      }
+      if (plant.hp !== v.lastHp) {
+        if (plant.hp < v.lastHp) v.flashT = 0.13;
+        v.lastHp = plant.hp;
+      }
+      if (v.flashT > 0) v.flashT = Math.max(0, v.flashT - dt);
+      if (v.recoilT > 0) v.recoilT = Math.max(0, v.recoilT - dt);
+
+      const bob = Math.sin(t * 1.8 + v.phase) * 1.1 + Math.sin(t * 0.9 + v.phase * 1.7) * 0.55;
+      const recoil = v.recoilT > 0 ? (v.recoilT / 0.22) * 3.2 : 0;
+      placeGroundedSprite(v.sprite, v.entry, plant.x, plant.y, GAME_GROUND, bob);
+      v.sprite.position.addScaledVector(CAM_RIGHT, -recoil * PX);
+
+      let scaleF = 1;
+      if (v.age < 0.22) {
+        const k = v.age / 0.22;
+        scaleF = 0.5 + 0.5 * (1 - Math.pow(1 - k, 3));
+      }
+      if (plant.def.id === 'cherry_bomb') scaleF *= 1 + 0.055 * Math.sin(t * 19 + v.phase);
+      v.sprite.scale.set(SPRITE_W * scaleF, SPRITE_H * scaleF, 1);
+
+      const flash = v.flashT > 0 ? 1 + 1.15 * (v.flashT / 0.13) : 1;
+      v.sprite.material.color.setScalar(Math.min(2.3, flash));
+      v.sprite.material.opacity = 1;
+
+      placeBlobShadow(v.shadow, plant.x, plant.y, GAME_GROUND, 0.06);
+      v.shadow.material.opacity = 0.30;
+    }
+
+    // Zombie views ---------------------------------------------------------
+    function createZombieView(z) {
+      const entry = getSheetEntry(zombieSheetFor(z));
+      const sprite = makeBillboardSprite(entry, RENDER_ZOMBIE);
+      const shadow = makeBlobShadow(sheetWorldWidth(entry.def), sheetWorldDepth(entry.def), 0.32);
+      return {
+        sprite, shadow, entry, sheet: zombieSheetFor(z),
+        phase: (z.row * 1.7 + z.x * 0.013) % (Math.PI * 2),
+        flashT: 0, lastHp: z.hp + z.armor, age: 0
+      };
+    }
+
+    function updateZombieView(v, z, t, dt) {
+      v.age += dt;
+      const sheetName = zombieSheetFor(z);
+      if (sheetName !== v.sheet) {
+        v.sheet = sheetName;
+        v.entry = getSheetEntry(sheetName);
+        forceSheetTexture(v.sprite, v.entry);
+      }
+      const totalHp = z.hp + z.armor;
+      if (totalHp !== v.lastHp) {
+        if (totalHp < v.lastHp) v.flashT = 0.13;
+        v.lastHp = totalHp;
+      }
+      if (v.flashT > 0) v.flashT = Math.max(0, v.flashT - dt);
+
+      const groundY = groundYForGameX(z.x);
+      const stepRate = z.eating ? 8.5 : 5.4;
+      const bob = z.eating
+        ? Math.sin(t * stepRate + v.phase) * 0.8 + 0.8
+        : Math.abs(Math.sin(t * stepRate + v.phase)) * 1.7;
+      placeGroundedSprite(v.sprite, v.entry, z.x, z.y, groundY, bob);
+      v.sprite.scale.set(SPRITE_W, SPRITE_H, 1);
+      v.sprite.material.rotation = z.eating
+        ? Math.sin(t * 13 + v.phase) * 0.055
+        : Math.sin(t * 3.1 + v.phase) * 0.032;
+
+      let r = 1, g = 1, b = 1;
+      if (z.chilled) { r = 0.55; g = 0.78; b = 1.0; }
+      if (v.flashT > 0) {
+        const f = 1 + 1.3 * (v.flashT / 0.13);
+        r *= f; g *= f; b *= f;
+      }
+      v.sprite.material.color.setRGB(Math.min(2.2, r), Math.min(2.2, g), Math.min(2.2, b));
+      v.sprite.material.opacity = 1;
+
+      placeBlobShadow(v.shadow, z.x, z.y, groundY, 0.07);
+      v.shadow.material.opacity = 0.34;
+    }
+
+    // Projectile views -----------------------------------------------------
+    function projectileRowY(p) {
+      return GRID_Y + p.row * CELL_H + CELL_H / 2;
+    }
+
+    function createProjectileView(p) {
+      const entry = getSheetEntry(p.isIce ? 'i_snow_pea' : 'i_pea');
+      const sprite = makeBillboardSprite(entry, RENDER_FLYING);
+      const shadow = makeBlobShadow(0.45, 0.28, 0.16);
+      return { sprite, shadow, entry, phase: Math.random() * 6 };
+    }
+
+    function peaWorldPosition(p) {
+      const rowY = projectileRowY(p);
+      _pos.set(wx(p.x), GAME_GROUND, wz(rowY));
+      _pos.addScaledVector(CAM_UP, 50 * PX);
+      return _pos;
+    }
+
+    function updateProjectileView(v, p, t) {
+      const rowY = projectileRowY(p);
+      v.sprite.position.copy(peaWorldPosition(p));
+      v.sprite.position.y += Math.sin(t * 9 + v.phase) * 0.02;
+      v.sprite.scale.set(SPRITE_W, SPRITE_H, 1);
+      placeBlobShadow(v.shadow, p.x, rowY, GAME_GROUND, 0.05);
+      v.shadow.material.opacity = 0.13;
+    }
+
+    // Sun views ------------------------------------------------------------
+    function sunVisualHeightGamePx(s) {
+      const target = s.targetY;
+      if (s.y < target) {
+        const k = Math.max(0, Math.min(1, (s.y + 30) / Math.max(1, target + 30)));
+        return 95 + (1 - k) * 230;
+      }
+      return 95;
+    }
+
+    function sunWorldPosition(s) {
+      const h = sunVisualHeightGamePx(s);
+      const bob = s.y >= s.targetY ? Math.sin(elapsed * 2.4 + (s.bobOffset || 0)) * 3.2 : 0;
+      _pos.set(wx(s.x), GAME_GROUND, wz(s.y));
+      _pos.addScaledVector(CAM_UP, (h + bob) * PX);
+      return _pos;
+    }
+
+    function createSunView(s) {
+      const entry = getSheetEntry('i_sun');
+      const sprite = makeBillboardSprite(entry, RENDER_SUN);
+      const shadow = makeBlobShadow(0.8, 0.5, 0.12);
+      return { sprite, shadow, entry, phase: (s.bobOffset || 0) };
+    }
+
+    function updateSunView(v, s, t) {
+      const h = sunVisualHeightGamePx(s);
+      v.sprite.position.copy(sunWorldPosition(s));
+      const pulse = 1 + 0.03 * Math.sin(t * 3.4 + v.phase);
+      v.sprite.scale.set(SPRITE_W * pulse, SPRITE_H * pulse, 1);
+      v.sprite.material.rotation = Math.sin(t * 0.9 + v.phase) * 0.18;
+      const groundY = groundYForGameX(s.x);
+      placeBlobShadow(v.shadow, s.x, s.y, groundY, 0.08);
+      const scale = 0.55 + h / 320;
+      v.shadow.scale.set(0.8 * scale, 1, 0.5 * scale);
+      v.shadow.material.opacity = Math.max(0.05, 0.16 - h / 2000);
+    }
+
+    // Mower views ----------------------------------------------------------
+    function createMowerView(m) {
+      const entry = getSheetEntry('i_mower');
+      const sprite = makeBillboardSprite(entry, RENDER_PLANT);
+      const shadow = makeBlobShadow(sheetWorldWidth(entry.def), sheetWorldDepth(entry.def), 0.28);
+      return { sprite, shadow, entry, phase: m.row * 1.3 };
+    }
+
+    function updateMowerView(v, m, t) {
+      const groundY = PLATFORM_TOP;
+      const shake = m.active ? Math.sin(t * 42) * 1.1 : 0;
+      placeGroundedSprite(v.sprite, v.entry, m.x, m.y, groundY, shake);
+      v.sprite.visible = m.x < 1350;
+      v.sprite.scale.set(SPRITE_W, SPRITE_H, 1);
+      if (m.active) {
+        v.sprite.material.rotation = Math.sin(t * 31) * 0.035;
+      } else {
+        v.sprite.material.rotation = 0;
+      }
+      placeBlobShadow(v.shadow, m.x, m.y, groundY, 0.05);
+      v.shadow.visible = m.x < 1350;
+      v.shadow.material.opacity = 0.26;
+    }
+
+    // =====================================================================
+    // Effects
+    // =====================================================================
+    function spawnBurst(pos, opts) {
+      const count = opts.count || 10;
+      const positions = new Float32Array(count * 3);
+      const vel = new Float32Array(count * 3);
+      const dir = opts.dir || null;
+      for (let i = 0; i < count; i++) {
+        positions[i * 3] = pos.x;
+        positions[i * 3 + 1] = pos.y;
+        positions[i * 3 + 2] = pos.z;
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.random() * Math.PI * 0.55;
+        const spd = (opts.speed || 2.2) * (0.35 + Math.random() * 0.85);
+        let vx = Math.cos(theta) * Math.sin(phi) * spd;
+        let vy = Math.cos(phi) * spd * (opts.upBias || 1.1);
+        let vz = Math.sin(theta) * Math.sin(phi) * spd;
+        if (dir) { vx = dir.x * spd + vx * 0.35; vy = dir.y * spd + vy * 0.35; vz = dir.z * spd + vz * 0.35; }
+        vel[i * 3] = vx; vel[i * 3 + 1] = vy; vel[i * 3 + 2] = vz;
+      }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      const mat = new THREE.PointsMaterial({
+        color: opts.color || 0x8bc34a,
+        size: opts.size || 0.16,
+        map: TEX.particle,
+        transparent: true,
+        depthWrite: false,
+        sizeAttenuation: true,
+        opacity: 1,
+        toneMapped: false,
+        blending: opts.blending === 'add' ? THREE.AdditiveBlending : THREE.NormalBlending
+      });
+      const points = new THREE.Points(geo, mat);
+      points.frustumCulled = false;
+      points.renderOrder = RENDER_FX;
+      scene.add(points);
+      bursts.push({
+        points, vel, t: 0, dur: opts.dur || 0.5,
+        gravity: opts.gravity === undefined ? 7 : opts.gravity,
+        startOpacity: 1, maxLife: opts.dur || 0.5
+      });
+      return points;
+    }
+
+    function updateBursts(dt) {
+      for (let i = bursts.length - 1; i >= 0; i--) {
+        const b = bursts[i];
+        b.t += dt;
+        const posAttr = b.points.geometry.getAttribute('position');
+        const arr = posAttr.array;
+        for (let k = 0; k < arr.length / 3; k++) {
+          arr[k * 3] += b.vel[k * 3] * dt;
+          arr[k * 3 + 1] += b.vel[k * 3 + 1] * dt;
+          arr[k * 3 + 2] += b.vel[k * 3 + 2] * dt;
+          b.vel[k * 3 + 1] -= b.gravity * dt;
+        }
+        posAttr.needsUpdate = true;
+        const k = b.t / b.dur;
+        b.points.material.opacity = Math.max(0, 1 - k * k);
+        if (b.t >= b.dur) {
+          scene.remove(b.points);
+          b.points.geometry.dispose();
+          b.points.material.dispose();
+          bursts.splice(i, 1);
+        }
+      }
+    }
+
+    function spawnRing(pos, color, maxRadius, dur) {
+      const geo = new THREE.RingGeometry(0.85, 1.0, 48);
+      geo.rotateX(-Math.PI / 2);
+      const mat = new THREE.MeshBasicMaterial({
+        color, transparent: true, opacity: 0.85, depthWrite: false,
+        side: THREE.DoubleSide, toneMapped: false
+      });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(pos.x, pos.y + 0.02, pos.z);
+      mesh.renderOrder = RENDER_FX;
+      scene.add(mesh);
+      rings.push({ mesh, t: 0, dur, maxRadius, mat });
+    }
+
+    function updateRings(dt) {
+      for (let i = rings.length - 1; i >= 0; i--) {
+        const r = rings[i];
+        r.t += dt;
+        const k = Math.min(1, r.t / r.dur);
+        const scale = 0.2 + k * r.maxRadius;
+        r.mesh.scale.set(scale, 1, scale);
+        r.mat.opacity = Math.max(0, 0.9 * (1 - k) * (1 - k));
+        if (r.t >= r.dur) {
+          scene.remove(r.mesh);
+          r.mesh.geometry.dispose();
+          r.mat.dispose();
+          rings.splice(i, 1);
+        }
+      }
+    }
+
+    function updateSunFlies(dt) {
+      for (let i = sunFlies.length - 1; i >= 0; i--) {
+        const f = sunFlies[i];
+        f.t += dt;
+        const k = Math.min(1, f.t / f.dur);
+        const ease = k * k * (3 - 2 * k);
+        f.sprite.position.lerpVectors(f.from, f.to, ease);
+        f.sprite.position.y += Math.sin(k * Math.PI) * 0.35;
+        const s = (1 - 0.97 * ease);
+        f.sprite.scale.set(SPRITE_W * s, SPRITE_H * s, 1);
+        f.sprite.material.opacity = k < 0.6 ? 1 : Math.max(0, 1 - (k - 0.6) / 0.4);
+        if (k >= 1) {
+          scene.remove(f.sprite);
+          f.sprite.material.dispose();
+          sunFlies.splice(i, 1);
+        }
+      }
+    }
+
+    function screenPointToWorld(px, py, dist) {
+      const v = new THREE.Vector3(
+        (px / GAME_W) * 2 - 1,
+        -(py / GAME_H) * 2 + 1,
+        0.5
+      );
+      v.unproject(camera);
+      v.sub(camera.position).normalize().multiplyScalar(dist).add(camera.position);
+      return v;
+    }
+
+    function fxSunCollect(s) {
+      const entry = getSheetEntry('i_sun');
+      const mat = new THREE.SpriteMaterial({
+        map: entry.texture, transparent: true, depthWrite: false,
+        sizeAttenuation: true, toneMapped: false, color: 0xffffff
+      });
+      const sprite = new THREE.Sprite(mat);
+      sprite.scale.set(SPRITE_W, SPRITE_H, 1);
+      sprite.renderOrder = RENDER_FX + 1;
+      sprite.position.copy(sunWorldPosition(s));
+      scene.add(sprite);
+      const to = screenPointToWorld(88, 42, 2.2);
+      sunFlies.push({ sprite, t: 0, dur: 0.45, from: sprite.position.clone(), to });
+      const p = sunWorldPosition(s);
+      spawnBurst(p, { count: 8, color: 0xffe66d, speed: 1.6, size: 0.14, dur: 0.35, blending: 'add', gravity: 2 });
+    }
+
+    let zombieDeathDir = 1;
+    function fxPeaSplat(p) {
+      const rowY = projectileRowY(p);
+      _pos.set(wx(p.x), GAME_GROUND, wz(rowY));
+      _pos.addScaledVector(CAM_UP, 50 * PX);
+      spawnBurst(_pos.clone(), {
+        count: p.isIce ? 10 : 9,
+        color: p.isIce ? 0x9fe4ff : 0x8fd45a,
+        speed: 2.0, size: 0.13, dur: 0.38, gravity: 6
+      });
+    }
+
+    function fxCherryBoom(plant) {
+      _pos.set(wx(plant.x), GAME_GROUND + 0.5, wz(plant.y));
+      spawnBurst(_pos.clone(), { count: 34, color: 0xff8a1f, speed: 5.4, size: 0.34, dur: 0.62, gravity: 7, sizeAttenuation: true, blending: 'add' });
+      spawnBurst(_pos.clone(), { count: 18, color: 0xffe066, speed: 3.4, size: 0.24, dur: 0.5, gravity: 5, blending: 'add' });
+      spawnRing(new THREE.Vector3(wx(plant.x), GAME_GROUND, wz(plant.y)), 0xffb03a, 3.4, 0.55);
+      if (boomLight) {
+        boomLight.position.set(wx(plant.x), 1.4, wz(plant.y));
+        boomLight.intensity = 22;
+      }
+    }
+
+    function fxPotatoBoom(plant) {
+      _pos.set(wx(plant.x), GAME_GROUND + 0.2, wz(plant.y));
+      spawnBurst(_pos.clone(), { count: 16, color: 0xd8b06a, speed: 2.6, size: 0.22, dur: 0.45, gravity: 8 });
+      spawnRing(new THREE.Vector3(wx(plant.x), GAME_GROUND, wz(plant.y)), 0xd9a441, 1.6, 0.4);
+      if (boomLight) {
+        boomLight.position.set(wx(plant.x), 1.0, wz(plant.y));
+        boomLight.intensity = 10;
+      }
+    }
+
+    function fxZombieDeath(z) {
+      const v = views.zombies.get(z);
+      if (!v) return;
+      views.zombies.delete(z);
+      applyDeathGhost(v, 'zombie');
+    }
+
+    function applyDeathGhost(v, kind) {
+      if (!v) return;
+      const dir = (Math.random() > 0.5 ? 1 : -1);
+      fadeGhosts.push({
+        sprite: v.sprite,
+        shadow: v.shadow,
+        t: 0,
+        dur: kind === 'zombie' ? 0.85 : 0.32,
+        kind,
+        rotDir: dir,
+        startY: v.sprite.position.y,
+        baseScaleX: v.sprite.scale.x,
+        baseScaleY: v.sprite.scale.y
+      });
+    }
+
+    function updateFadeGhosts(dt) {
+      for (let i = fadeGhosts.length - 1; i >= 0; i--) {
+        const g = fadeGhosts[i];
+        g.t += dt;
+        const k = Math.min(1, g.t / g.dur);
+        if (g.kind === 'zombie') {
+          g.sprite.material.rotation = g.rotDir * Math.min(1, k * 1.3) * 1.35;
+          g.sprite.position.y = g.startY - k * 0.55;
+          g.sprite.material.opacity = 1 - k;
+        } else {
+          const s = 1 - 0.5 * k;
+          g.sprite.scale.set(g.baseScaleX * s, g.baseScaleY * s, 1);
+          g.sprite.position.y = g.startY - k * 0.2;
+          g.sprite.material.opacity = 1 - k;
+        }
+        if (g.shadow) {
+          g.shadow.material.opacity = (g.shadow.userData.baseOpacity || 0.3) * (1 - k);
+          if (g.shadow.material.opacity > 0.3) g.shadow.material.opacity = 0.3 * (1 - k);
+        }
+        if (k >= 1) {
+          scene.remove(g.sprite);
+          if (g.sprite.material) g.sprite.material.dispose();
+          if (g.shadow) {
+            scene.remove(g.shadow);
+            if (g.shadow.material) g.shadow.material.dispose();
+          }
+          fadeGhosts.splice(i, 1);
+        }
+      }
+    }
+
+    // =====================================================================
+    // Interaction visuals: hover highlight + planting ghost
+    // =====================================================================
+    function buildInteractionVisuals() {
+      const geo = new THREE.PlaneGeometry(CELL_W * PX * 0.98, CELL_H * PX * 0.98);
+      geo.rotateX(-Math.PI / 2);
+      highlightMesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
+        color: 0x4caf50, transparent: true, opacity: 0.34, depthWrite: false, toneMapped: false
+      }));
+      highlightMesh.renderOrder = RENDER_SHADOW;
+      highlightMesh.visible = false;
+      scene.add(highlightMesh);
+
+      ghostSprite = new THREE.Sprite(new THREE.SpriteMaterial({
+        transparent: true, opacity: 0.55, depthWrite: false, depthTest: true, toneMapped: false
+      }));
+      ghostSprite.scale.set(SPRITE_W, SPRITE_H, 1);
+      ghostSprite.renderOrder = RENDER_GHOST;
+      ghostSprite.visible = false;
+      scene.add(ghostSprite);
+
+      ghostShadow = makeBlobShadow(1.0, 0.56, 0.18);
+      ghostShadow.visible = false;
+
+      boomLight = new THREE.PointLight(0xffa030, 0, 14, 2);
+      scene.add(boomLight);
+    }
+
+    function updateInteractionVisuals() {
+      const active = gameState === 'PLAYING' && hoveredCell.col >= 0 && (selectedPlant || isShovelActive);
+      if (!active) {
+        highlightMesh.visible = false;
+        ghostSprite.visible = false;
+        ghostShadow.visible = false;
+        return;
+      }
+      const cellX = GRID_X + hoveredCell.col * CELL_W + CELL_W / 2;
+      const cellY = GRID_Y + hoveredCell.row * CELL_H + CELL_H / 2;
+      highlightMesh.visible = true;
+      highlightMesh.position.set(wx(cellX), GAME_GROUND + 0.008, wz(cellY));
+
+      let valid = true;
+      if (isShovelActive) {
+        highlightMesh.material.color.setHex(0xef5350);
+        valid = !!grid[hoveredCell.row][hoveredCell.col];
+      } else {
+        const occupied = !!grid[hoveredCell.row][hoveredCell.col];
+        highlightMesh.material.color.setHex(occupied ? 0xef5350 : 0x4caf50);
+        valid = !occupied;
+      }
+
+      if (selectedPlant) {
+        const entry = getSheetEntry(plantSheetForId(selectedPlant.id));
+        if (ghostSprite.material.map !== entry.texture) {
+          ghostSprite.material.map = entry.texture;
+          ghostSprite.material.needsUpdate = true;
+        }
+        placeGroundedSprite(ghostSprite, entry, cellX, cellY, GAME_GROUND, 0);
+        ghostSprite.scale.set(SPRITE_W, SPRITE_H, 1);
+        ghostSprite.material.color.setHex(valid ? 0xffffff : 0xff7b6b);
+        ghostSprite.material.opacity = 0.55;
+        ghostSprite.visible = true;
+        placeBlobShadow(ghostShadow, cellX, cellY, GAME_GROUND, 0.06);
+        ghostShadow.visible = true;
+      } else {
+        ghostSprite.visible = false;
+        ghostShadow.visible = false;
+      }
+    }
+
+    // =====================================================================
+    // Per-frame scene sync
+    // =====================================================================
+    function syncViews() {
+      const dt = 0;
+      // Plants
+      const seenPlants = new Set();
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          const plant = grid[r][c];
+          if (!plant) continue;
+          seenPlants.add(plant);
+          let v = views.plants.get(plant);
+          if (!v) {
+            v = createPlantView(plant);
+            views.plants.set(plant, v);
+          }
+          updatePlantView(v, plant, elapsed, syncViews.dt || 0.016);
+        }
+      }
+      for (const [plant, v] of views.plants) {
+        if (!seenPlants.has(plant)) {
+          views.plants.delete(plant);
+          applyDeathGhost(v, 'plant');
+        }
+      }
+      // Zombies
+      const seenZombies = new Set();
+      for (const z of zombies) {
+        seenZombies.add(z);
+        let v = views.zombies.get(z);
+        if (!v) {
+          v = createZombieView(z);
+          views.zombies.set(z, v);
+        }
+        updateZombieView(v, z, elapsed, syncViews.dt || 0.016);
+      }
+      for (const [z, v] of views.zombies) {
+        if (!seenZombies.has(z)) {
+          views.zombies.delete(z);
+          applyDeathGhost(v, 'zombie');
+        }
+      }
+      // Projectiles
+      const seenProj = new Set();
+      for (const p of projectiles) {
+        seenProj.add(p);
+        let v = views.projectiles.get(p);
+        if (!v) {
+          v = createProjectileView(p);
+          views.projectiles.set(p, v);
+        }
+        updateProjectileView(v, p, elapsed);
+      }
+      for (const [p, v] of views.projectiles) {
+        if (!seenProj.has(p)) {
+          views.projectiles.delete(p);
+          destroyView(v);
+        }
+      }
+      // Suns
+      const seenSuns = new Set();
+      for (const s of sunItems) {
+        seenSuns.add(s);
+        let v = views.suns.get(s);
+        if (!v) {
+          v = createSunView(s);
+          views.suns.set(s, v);
+        }
+        updateSunView(v, s, elapsed);
+      }
+      for (const [s, v] of views.suns) {
+        if (!seenSuns.has(s)) {
+          views.suns.delete(s);
+          destroyView(v);
+        }
+      }
+      // Mowers
+      const seenMowers = new Set();
+      for (const m of lawnMowers) {
+        seenMowers.add(m);
+        let v = views.mowers.get(m);
+        if (!v) {
+          v = createMowerView(m);
+          views.mowers.set(m, v);
+        }
+        updateMowerView(v, m, elapsed);
+      }
+      for (const [m, v] of views.mowers) {
+        if (!seenMowers.has(m)) {
+          views.mowers.delete(m);
+          destroyView(v);
+        }
+      }
+    }
+
+    function updateSheetAnimations(t) {
+      for (const [name, entry] of sheetCache) {
+        const frames = Math.max(1, entry.def.frames || 1);
+        if (frames <= 1) continue;
+        const fps = entry.def.fps || 1;
+        const frame = Math.floor(t * fps) % frames;
+        if (entry.lastFrame === frame) continue;
+        entry.lastFrame = frame;
+        entry.texture.offset.x = frame / frames + 0.5 / (FRAME_W * frames);
+      }
+    }
+
+    // =====================================================================
+    // Input
+    // =====================================================================
+    const raycaster = new THREE.Raycaster();
+    const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    const ndcVec = new THREE.Vector2();
+    const hitPoint = new THREE.Vector3();
+
+    function getCanvasCoords(e) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: (e.clientX - rect.left) / rect.width * GAME_W,
+        y: (e.clientY - rect.top) / rect.height * GAME_H
+      };
+    }
+
+    function screenToGame(px, py) {
+      if (!camera) return null;
+      ndcVec.set((px / GAME_W) * 2 - 1, -(py / GAME_H) * 2 + 1);
+      raycaster.setFromCamera(ndcVec, camera);
+      if (!raycaster.ray.intersectPlane(groundPlane, hitPoint)) return null;
+      return { x: hitPoint.x / PX + 640, y: hitPoint.z / PX + 360 };
+    }
+
+    const _proj = new THREE.Vector3();
+    function sunScreenPixel(s) {
+      _proj.copy(sunWorldPosition(s));
+      _proj.project(camera);
+      return { x: (_proj.x * 0.5 + 0.5) * GAME_W, y: (-_proj.y * 0.5 + 0.5) * GAME_H };
+    }
+
+    function pickSunAt(px, py) {
+      let best = -1;
+      let bestDist = 42;
+      for (let i = sunItems.length - 1; i >= 0; i--) {
+        const sp = sunScreenPixel(sunItems[i]);
+        const d = Math.hypot(sp.x - px, sp.y - py);
+        if (d < bestDist) { bestDist = d; best = i; }
+      }
+      return best;
+    }
+
+    function tryPlacePlant(def, row, col) {
+      if (grid[row][col]) return false;
+      grid[row][col] = {
+        def,
+        row, col,
+        x: GRID_X + col * CELL_W + CELL_W / 2,
+        y: GRID_Y + row * CELL_H + CELL_H / 2,
+        hp: def.hp,
+        maxHp: def.hp,
+        attackTimer: 0.5,
+        produceTimer: 7.0,
+        fuseTimer: 1.0,
+        armed: false,
+        armTimer: 14.0,
+        chewing: false,
+        chewTimer: 0
+      };
+      return true;
+    }
+
+    function removePlantAt(row, col) {
+      const plant = grid[row][col];
+      if (!plant) return false;
+      const v = views.plants.get(plant);
+      if (v) {
+        views.plants.delete(plant);
+        applyDeathGhost(v, 'plant');
+      }
+      grid[row][col] = null;
+      return true;
+    }
+
+    function handleGameClick(px, py) {
+      if (gameState !== 'PLAYING') return;
+      initAudio();
+
+      // (1) Suns are picked by screen-projected sprite position, before grid logic.
+      const sunIdx = pickSunAt(px, py);
+      if (sunIdx >= 0) {
+        const s = sunItems[sunIdx];
+        fxSunCollect(s);
+        sun += 25;
+        playSound('sun');
+        sunItems.splice(sunIdx, 1);
+        updateUI();
+        return;
+      }
+
+      // (2) Everything else uses screen -> ground -> game px -> cell.
+      const g = screenToGame(px, py);
+      if (!g) return;
+      const col = Math.floor((g.x - GRID_X) / CELL_W);
+      const row = Math.floor((g.y - GRID_Y) / CELL_H);
+      if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return;
+
+      if (isShovelActive) {
+        if (grid[row][col]) {
+          removePlantAt(row, col);
+          playSound('splat');
+          toggleShovel();
+        }
+      } else if (selectedPlant) {
+        if (!grid[row][col] && sun >= selectedPlant.cost) {
+          sun -= selectedPlant.cost;
+          tryPlacePlant(selectedPlant, row, col);
+          cardCooldowns[selectedPlant.id] = selectedPlant.cd;
+          selectedPlant = null;
+          playSound('splat');
+          updateUI();
+        }
+      }
+    }
+
     canvas.addEventListener('mousemove', e => {
+      const { x, y } = getCanvasCoords(e);
+      parallax.x = (x / GAME_W) * 2 - 1;
+      parallax.y = (y / GAME_H) * 2 - 1;
       if (gameState !== 'PLAYING') {
         hoveredCell = { col: -1, row: -1 };
         return;
       }
-      const { x, y } = getCanvasCoords(e);
-      const col = Math.floor((x - GRID_X) / CELL_W);
-      const row = Math.floor((y - GRID_Y) / CELL_H);
+      const g = screenToGame(x, y);
+      if (!g) { hoveredCell = { col: -1, row: -1 }; return; }
+      const col = Math.floor((g.x - GRID_X) / CELL_W);
+      const row = Math.floor((g.y - GRID_Y) / CELL_H);
       if (col >= 0 && col < COLS && row >= 0 && row < ROWS) {
         hoveredCell = { col, row };
       } else {
@@ -810,59 +2445,14 @@
       }
     });
 
+    canvas.addEventListener('mouseleave', () => {
+      hoveredCell = { col: -1, row: -1 };
+      parallax.x = 0; parallax.y = 0;
+    });
+
     canvas.addEventListener('click', e => {
-      if (gameState !== 'PLAYING') return;
-      initAudio();
       const { x, y } = getCanvasCoords(e);
-
-      // Check Sun clicks first
-      for (let i = sunItems.length - 1; i >= 0; i--) {
-        const s = sunItems[i];
-        const dist = Math.hypot(s.x - x, s.y - y);
-        if (dist <= 38) {
-          sun += 25;
-          playSound('sun');
-          sunItems.splice(i, 1);
-          updateUI();
-          return;
-        }
-      }
-
-      // Check Lawn click
-      const col = Math.floor((x - GRID_X) / CELL_W);
-      const row = Math.floor((y - GRID_Y) / CELL_H);
-      if (col >= 0 && col < COLS && row >= 0 && row < ROWS) {
-        if (isShovelActive) {
-          if (grid[row][col]) {
-            grid[row][col] = null;
-            playSound('splat');
-            toggleShovel();
-          }
-        } else if (selectedPlant) {
-          if (!grid[row][col] && sun >= selectedPlant.cost) {
-            sun -= selectedPlant.cost;
-            grid[row][col] = {
-              def: selectedPlant,
-              row, col,
-              x: GRID_X + col * CELL_W + CELL_W / 2,
-              y: GRID_Y + row * CELL_H + CELL_H / 2,
-              hp: selectedPlant.hp,
-              maxHp: selectedPlant.hp,
-              attackTimer: 0.5,
-              produceTimer: 7.0,
-              fuseTimer: 1.0,
-              armed: false,
-              armTimer: 14.0,
-              chewing: false,
-              chewTimer: 0
-            };
-            cardCooldowns[selectedPlant.id] = selectedPlant.cd;
-            selectedPlant = null;
-            playSound('splat');
-            updateUI();
-          }
-        }
-      }
+      handleGameClick(x, y);
     });
 
     canvas.addEventListener('contextmenu', e => {
@@ -874,7 +2464,21 @@
       updateUI();
     });
 
-    // --- Game Loop ---
+    canvas.addEventListener('touchstart', e => {
+      if (gameState !== 'PLAYING') return;
+      e.preventDefault();
+      const touch = e.changedTouches && e.changedTouches[0];
+      if (!touch) return;
+      const rect = canvas.getBoundingClientRect();
+      const x = (touch.clientX - rect.left) / rect.width * GAME_W;
+      const y = (touch.clientY - rect.top) / rect.height * GAME_H;
+      parallax.x = 0; parallax.y = 0;
+      handleGameClick(x, y);
+    }, { passive: false });
+
+    // =====================================================================
+    // Game Loop
+    // =====================================================================
     let lastTime = performance.now();
 
     function update(dt) {
@@ -947,6 +2551,7 @@
               if (hasZombieAhead) {
                 const isIce = plant.def.id === 'snow_pea';
                 projectiles.push({ x: plant.x + 28, y: plant.y - 12, row: r, isIce, speed: 400 });
+                fxPlantShoot(plant);
                 playSound('shoot');
                 if (plant.def.id === 'repeater') {
                   setTimeout(() => {
@@ -981,6 +2586,7 @@
             plant.fuseTimer -= dt;
             if (plant.fuseTimer <= 0) {
               playSound('boom');
+              fxCherryBoom(plant);
               zombies.forEach(z => {
                 if (Math.abs(z.row - r) <= 1 && Math.abs(z.x - plant.x) <= 160) {
                   z.hp = 0; z.armor = 0; z.isDead = true;
@@ -999,6 +2605,7 @@
               const stepping = zombies.find(z => z.row === r && Math.abs(z.x - plant.x) < 45);
               if (stepping) {
                 playSound('boom');
+                fxPotatoBoom(plant);
                 stepping.hp = 0; stepping.armor = 0; stepping.isDead = true;
                 grid[r][c] = null;
               }
@@ -1031,6 +2638,7 @@
         for (const z of zombies) {
           if (z.row === p.row && Math.abs(z.x - p.x) < 25) {
             playSound('splat');
+            fxPeaSplat(p);
             if (p.isIce) {
               z.chilled = true;
               z.chillTimer = 5.0;
@@ -1053,6 +2661,7 @@
       for (let i = zombies.length - 1; i >= 0; i--) {
         const z = zombies[i];
         if (z.isDead) {
+          fxZombieDeath(z);
           zombies.splice(i, 1);
           continue;
         }
@@ -1074,7 +2683,7 @@
             plantAhead.hp -= 50;
             z.eatTimer = 0.5;
             if (plantAhead.hp <= 0) {
-              grid[z.row][col] = null;
+              removePlantAt(z.row, col);
               z.eating = false;
             }
           }
@@ -1130,164 +2739,230 @@
       if (retryBtn) retryBtn.textContent = won ? '再玩一次' : '再试一次';
     }
 
-    // --- Rendering ---
-    function render() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // House patio
-      ctx.fillStyle = '#4a3b2c';
-      ctx.fillRect(0, 0, 265, 720);
-      ctx.strokeStyle = '#382a1d';
-      ctx.lineWidth = 2;
-      for (let y = 0; y < 720; y += 48) {
-        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(265, y); ctx.stroke();
-      }
-
-      // Street pavement on right
-      ctx.fillStyle = '#424950';
-      ctx.fillRect(1165, 0, 115, 720);
-
-      // Lawn tiles
-      for (let r = 0; r < ROWS; r++) {
-        for (let c = 0; c < COLS; c++) {
-          const isEven = (r + c) % 2 === 0;
-          ctx.fillStyle = isEven ? '#388e3c' : '#2e7d32';
-          ctx.fillRect(GRID_X + c * CELL_W, GRID_Y + r * CELL_H, CELL_W, CELL_H);
-          ctx.strokeStyle = '#1b5e20';
-          ctx.strokeRect(GRID_X + c * CELL_W, GRID_Y + r * CELL_H, CELL_W, CELL_H);
-        }
-      }
-
-      // Hover Highlight
-      if (hoveredCell.col >= 0 && hoveredCell.row >= 0) {
-        const hx = GRID_X + hoveredCell.col * CELL_W;
-        const hy = GRID_Y + hoveredCell.row * CELL_H;
-        if (isShovelActive) {
-          ctx.fillStyle = 'rgba(239, 83, 80, 0.4)';
-          ctx.fillRect(hx, hy, CELL_W, CELL_H);
-        } else if (selectedPlant) {
-          const occupied = !!grid[hoveredCell.row][hoveredCell.col];
-          ctx.fillStyle = occupied ? 'rgba(239, 83, 80, 0.4)' : 'rgba(76, 175, 80, 0.45)';
-          ctx.fillRect(hx, hy, CELL_W, CELL_H);
-        }
-      }
-
-      // LawnMowers
-      lawnMowers.forEach(m => {
-        if (m.x < 1350) {
-          ctx.fillStyle = '#d32f2f';
-          ctx.fillRect(m.x - 22, m.y - 14, 44, 28);
-          ctx.fillStyle = '#212121';
-          ctx.beginPath(); ctx.arc(m.x - 16, m.y + 14, 7, 0, Math.PI * 2); ctx.fill();
-          ctx.beginPath(); ctx.arc(m.x + 16, m.y + 14, 7, 0, Math.PI * 2); ctx.fill();
-        }
-      });
-
-      // Plants
-      for (let r = 0; r < ROWS; r++) {
-        for (let c = 0; c < COLS; c++) {
-          const p = grid[r][c];
-          if (!p) continue;
-          ctx.save();
-          ctx.translate(p.x, p.y);
-
-          if (p.def.id === 'peashooter' || p.def.id === 'repeater' || p.def.id === 'snow_pea') {
-            ctx.fillStyle = p.def.color;
-            ctx.beginPath(); ctx.arc(0, -4, 22, 0, Math.PI * 2); ctx.fill();
-            ctx.fillRect(10, -12, 16, 16);
-            ctx.fillStyle = '#000';
-            ctx.beginPath(); ctx.arc(6, -8, 5, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = '#fff';
-            ctx.beginPath(); ctx.arc(8, -9, 2, 0, Math.PI * 2); ctx.fill();
-          } else if (p.def.id === 'sunflower') {
-            for (let i = 0; i < 10; i++) {
-              const a = (i / 10) * Math.PI * 2;
-              ctx.fillStyle = '#fbc02d';
-              ctx.beginPath(); ctx.arc(Math.cos(a) * 22, Math.sin(a) * 22, 8, 0, Math.PI * 2); ctx.fill();
-            }
-            ctx.fillStyle = '#795548';
-            ctx.beginPath(); ctx.arc(0, 0, 18, 0, Math.PI * 2); ctx.fill();
-          } else if (p.def.id === 'wallnut') {
-            ctx.fillStyle = '#8d6e63';
-            ctx.beginPath(); ctx.ellipse(0, 0, 22, 28, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = '#000';
-            ctx.beginPath(); ctx.arc(8, -6, 5, 0, Math.PI * 2); ctx.fill();
-          } else if (p.def.id === 'cherry_bomb') {
-            ctx.fillStyle = '#e53935';
-            ctx.beginPath(); ctx.arc(-14, 4, 16, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.arc(14, 4, 16, 0, Math.PI * 2); ctx.fill();
-          } else if (p.def.id === 'potato_mine') {
-            ctx.fillStyle = p.armed ? '#bcaaa4' : '#6d4c41';
-            ctx.beginPath(); ctx.arc(0, 8, 16, 0, Math.PI * 2); ctx.fill();
-          } else if (p.def.id === 'chomper') {
-            ctx.fillStyle = '#ab47bc';
-            ctx.beginPath(); ctx.arc(0, -6, 22, 0, Math.PI * 2); ctx.fill();
-          }
-          ctx.restore();
-        }
-      }
-
-      // Projectiles
-      projectiles.forEach(p => {
-        ctx.fillStyle = p.isIce ? '#29b6f6' : '#66bb6a';
-        ctx.beginPath(); ctx.arc(p.x, p.y, 9, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#fff';
-        ctx.beginPath(); ctx.arc(p.x - 3, p.y - 3, 3, 0, Math.PI * 2); ctx.fill();
-      });
-
-      // Zombies
-      zombies.forEach(z => {
-        ctx.save();
-        ctx.translate(z.x, z.y);
-        if (z.chilled) ctx.filter = 'hue-rotate(180deg) brightness(1.2)';
-
-        // Body
-        ctx.fillStyle = '#5d4037';
-        ctx.fillRect(-12, -4, 24, 28);
-        ctx.fillStyle = '#ef5350';
-        ctx.fillRect(-2, 0, 4, 16);
-
-        // Head
-        ctx.fillStyle = '#81c784';
-        ctx.beginPath(); ctx.arc(0, -22, 18, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#fff';
-        ctx.beginPath(); ctx.arc(-6, -24, 5, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#000';
-        ctx.beginPath(); ctx.arc(-8, -24, 2.5, 0, Math.PI * 2); ctx.fill();
-
-        // Hat / Armor
-        if (z.armor > 0) {
-          if (z.type === 'conehead') {
-            ctx.fillStyle = '#ff9800';
-            ctx.beginPath(); ctx.moveTo(-14, -14); ctx.lineTo(14, -14); ctx.lineTo(0, -42); ctx.closePath(); ctx.fill();
-          } else if (z.type === 'buckethead') {
-            ctx.fillStyle = '#b0bec5';
-            ctx.fillRect(-14, -40, 28, 26);
-          }
-        }
-        ctx.restore();
-      });
-
-      // Sun Items
-      sunItems.forEach(s => {
-        ctx.fillStyle = '#ffeb3b';
-        ctx.beginPath(); ctx.arc(s.x, s.y, 24, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#fff59d';
-        ctx.beginPath(); ctx.arc(s.x - 5, s.y - 5, 8, 0, Math.PI * 2); ctx.fill();
-      });
+    // Presentation-only hooks called from the unchanged game logic.
+    function fxPlantShoot(plant) {
+      const v = views.plants.get(plant);
+      if (v) v.recoilT = 0.22;
+      const rowY = plant.y;
+      _pos.set(wx(plant.x + 26), GAME_GROUND, wz(rowY));
+      _pos.addScaledVector(CAM_UP, 48 * PX);
+      spawnBurst(_pos.clone(), { count: 3, color: 0xd7f3a0, speed: 0.9, size: 0.08, dur: 0.18, gravity: 3 });
     }
+
+    // =====================================================================
+    // Render loop + boot
+    // =====================================================================
+    let loopStarted = false;
 
     function gameLoop(now) {
       const dt = Math.min((now - lastTime) / 1000, 0.1);
       lastTime = now;
+      elapsed += dt;
+
       update(dt);
-      render();
+
+      updateCameraPose();
+      syncViews.dt = dt;
+      syncViews();
+      updateSheetAnimations(elapsed);
+      updateFadeGhosts(dt);
+      updateBursts(dt);
+      updateRings(dt);
+      updateSunFlies(dt);
+      updateInteractionVisuals();
+      if (boomLight && boomLight.intensity > 0) {
+        boomLight.intensity = Math.max(0, boomLight.intensity - dt * 55);
+      }
+
+      renderer.render(scene, camera);
+
+      if (!firstFrameDone) {
+        firstFrameDone = true;
+      }
+      if (!window.__pvzReady && assetsReady && (!SHOT_MODE || shotEntered)) {
+        window.__pvzReady = true;
+        hideLoadingOverlay();
+      }
       requestAnimationFrame(gameLoop);
     }
-    initMainMenu();
-    returnToMainMenu();
-    requestAnimationFrame(gameLoop);
+
+    function startLoop() {
+      if (loopStarted) return;
+      loopStarted = true;
+      lastTime = performance.now();
+      requestAnimationFrame(gameLoop);
+    }
+
+    // ---- Loading overlay ----
+    function setLoadingProgress(p) {
+      const bar = document.getElementById('loading-bar-fill');
+      if (bar) bar.style.width = Math.round(Math.max(0, Math.min(1, p)) * 100) + '%';
+    }
+    function hideLoadingOverlay() {
+      const el = document.getElementById('loading-overlay');
+      if (el) el.classList.add('hidden');
+    }
+    function showLoadingError(msg) {
+      const el = document.getElementById('loading-error');
+      if (el) el.textContent = String(msg);
+    }
+
+    // =====================================================================
+    // Debug / test API (required by spec §5)
+    // =====================================================================
+    function apiPlacePlant(plantId, row, col) {
+      const def = PLANT_DEFS.find(p => p.id === plantId);
+      if (!def || row < 0 || row >= ROWS || col < 0 || col >= COLS) return false;
+      if (!tryPlacePlant(def, row, col)) return false;
+      updateUI();
+      return true;
+    }
+
+    function apiSpawnZombie(type, row, x) {
+      if (gameState === 'MENU') startLevel(currentLevel ? currentLevel.id : 1);
+      if (gameState === 'PAUSED') resumeGame();
+      if (row < 0 || row >= ROWS) return false;
+      spawnZombieAt(type, row, x === undefined ? 1300 : x);
+      return true;
+    }
+
+    function apiGetGrid() {
+      return grid.map(row => row.map(p => p ? {
+        id: p.def.id, hp: p.hp, maxHp: p.maxHp, row: p.row, col: p.col,
+        armed: !!p.armed, chewing: !!p.chewing
+      } : null));
+    }
+
+    function apiGetZombies() {
+      return zombies.map(z => ({
+        type: z.type, row: z.row, x: z.x, y: z.y,
+        hp: z.hp, armor: z.armor, maxArmor: z.maxArmor,
+        chilled: !!z.chilled, eating: !!z.eating
+      }));
+    }
+
+    function apiGetSuns() {
+      return sunItems.map(s => ({ x: s.x, y: s.y, targetY: s.targetY, lifetime: s.lifetime }));
+    }
+
+    function applyShotPreset() {
+      const layout = [
+        ['peashooter', 0, 0], ['sunflower', 1, 0], ['wallnut', 2, 0], ['snow_pea', 3, 0], ['repeater', 4, 0],
+        ['chomper', 0, 2], ['potato_mine', 1, 2], ['cherry_bomb', 2, 2], ['sunflower', 3, 2], ['peashooter', 4, 2],
+        ['snow_pea', 0, 4], ['repeater', 1, 4], ['wallnut', 2, 4], ['chomper', 3, 4], ['peashooter', 4, 4]
+      ];
+      layout.forEach(([id, row, col]) => apiPlacePlant(id, row, col));
+      // Keep the cherry bomb on screen (it is part of the visual preset).
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          const p = grid[r][c];
+          if (p && p.def.id === 'cherry_bomb') p.fuseTimer = 9999;
+          if (p && p.def.id === 'potato_mine') p.armTimer = 9999;
+        }
+      }
+      // A row of zombies walking in from the right, mixed types.
+      apiSpawnZombie('normal', 2, 1030);
+      apiSpawnZombie('normal', 0, 1120);
+      apiSpawnZombie('conehead', 3, 930);
+      apiSpawnZombie('buckethead', 1, 1180);
+      apiSpawnZombie('flag', 4, 860);
+      // Two floating suns.
+      sunItems.length = 0;
+      sunItems.push({ x: 360, y: 300, targetY: 300, lifetime: 9999, bobOffset: 0 });
+      sunItems.push({ x: 845, y: 430, targetY: 430, lifetime: 9999, bobOffset: 2.1 });
+      // Freeze wave scheduling + natural sun drops for a deterministic capture.
+      waveTimer = 99999;
+      naturalSunTimer = 99999;
+      allWavesSpawned = false;
+      updateUI();
+    }
+
+    function enterShotMode(levelId) {
+      shotEntered = true;
+      startLevel(levelId);
+      applyShotPreset();
+      const banner = document.getElementById('wave-banner');
+      if (banner) banner.style.opacity = '0';
+    }
+
+    const pvzApi = {
+      get state() { return gameState; },
+      get sun() { return sun; },
+      get level() { return currentLevel ? currentLevel.id : null; },
+      get ready() { return !!window.__pvzReady; },
+      startLevel,
+      placePlant: apiPlacePlant,
+      spawnZombie: apiSpawnZombie,
+      addSun(n) { sun += (Number(n) || 0); updateUI(); return sun; },
+      gameOver: endGame,
+      getGrid: apiGetGrid,
+      getZombies: apiGetZombies,
+      getSuns: apiGetSuns,
+      getState() {
+        return {
+          gameState, sun,
+          level: currentLevel ? currentLevel.id : null,
+          wave: currentWaveIdx, waves: waves.length,
+          plants: apiGetGrid(), zombies: apiGetZombies(), suns: apiGetSuns()
+        };
+      }
+    };
+
+    // Inline DOM handlers live in global scope (module scope is not global).
+    Object.assign(window, {
+      startLevel, toggleShovel, openInGameMenu, resumeGame, restartLevel, returnToMainMenu
+    });
+    Object.defineProperty(window, 'gameState', { get() { return gameState; }, configurable: true });
+    Object.defineProperty(window, 'sun', { get() { return sun; }, configurable: true });
+    Object.defineProperty(window, 'zombies', { get() { return zombies; }, configurable: true });
+    Object.defineProperty(window, 'sunItems', { get() { return sunItems; }, configurable: true });
+    window.__pvz = pvzApi;
+    window.__pvzDebug = {
+      get scene() { return scene; },
+      get camera() { return camera; },
+      get renderer() { return renderer; },
+      get views() { return views; },
+      get sheets() { return sheetCache; },
+      screenToGame,
+      sunScreenPixel
+    };
+
+    async function boot() {
+      initMainMenu();
+      returnToMainMenu();
+      updateLoadingText('正在生成 3D 庭院…');
+      try {
+        initRenderer();
+        updateLoadingText('正在加载立绘贴图…');
+      } catch (err) {
+        reportError(err && err.stack ? err.stack : err);
+        showLoadingError('WebGL 初始化失败: ' + (err && err.message ? err.message : err));
+        return;
+      }
+      startLoop();
+      try {
+        await loadSheetTextures();
+      } catch (err) {
+        reportError(err && err.stack ? err.stack : err);
+        showLoadingError('贴图加载失败: ' + (err && err.message ? err.message : err));
+      }
+      assetsReady = true;
+      if (SHOT_MODE) {
+        try { enterShotMode(SHOT_LEVEL); } catch (err) { reportError(err && err.stack ? err.stack : err); }
+      }
+    }
+
+    function updateLoadingText(main, sub) {
+      const subEl = document.getElementById('loading-sub');
+      if (subEl && sub) subEl.textContent = sub;
+      const titleEl = document.querySelector('#loading-overlay .loading-title');
+      if (titleEl && main) titleEl.textContent = main;
+    }
+
+    boot().catch(err => {
+      reportError(err && err.stack ? err.stack : err);
+      showLoadingError(String(err && err.message ? err.message : err));
+    });
   </script>
 </body>
 </html>
-

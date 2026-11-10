@@ -105,7 +105,7 @@ static func make_ghost(sheet_name: String) -> Billboard2D:
 	var billboard := make_billboard(sheet_name)
 	billboard.set_alpha(0.55)
 	billboard.animate_frames = true
-	billboard.render_priority = 4
+	billboard.sprite.render_priority = 4
 	return billboard
 
 

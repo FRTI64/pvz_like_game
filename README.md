@@ -1,161 +1,249 @@
-# Plants vs Zombies (PVZ) Game Framework
-**Engine**: Godot Engine 4.7.2  
-**Target Platform**: 纯Web前端 (HTML5 / WebAssembly / WebGL 2.0)  
-**Architecture Pattern**: Data-Driven (Resource-based), Decoupled EventBus, Component Visuals
+# Plants vs Zombies — 3D 渲染的 2D 游戏 (HD-2D / 2.5D)
+
+**引擎**: Godot Engine 4.7.2 + Three.js (WebGL2)
+**玩法**: 2D 植物大战僵尸（5×9 草坪、波次、阳光经济、8 植物 / 4 僵尸 / 3 关卡，全部保留原版数值与规则）
+**渲染**: 3D（透视相机 + 立体草坪场景 + 2D 美术立牌 billboard + 3D 粒子特效）
+**目标平台**: 纯 Web 前端（Godot Web 导出 / 浏览器即时预览）
+
+> 本项目在原 2D 版基础上做了「3D 渲染 2D」的改造：**游戏逻辑仍然是 2D**（像素坐标、网格、车道、数值全部不变），
+> **渲染层换成 3D**：固定透视相机俯瞰一座立体草坪 diorama，植物、僵尸、子弹、阳光以面向相机的 2D 美术立牌
+> （billboard，HD-2D 风格）站在草地上，配合 3D 场景道具、光照与地面软阴影。原有程序化 2D 美术被离线烘焙成
+> 透明 sprite sheet 供两个版本共用，因此 **Godot 版和网页版视觉一致、玩法一致**。
+
+| Godot 版 | 网页版 (Three.js) |
+| --- | --- |
+| ![Godot 3D gameplay](docs/screenshots/godot_3d_gameplay.png) | ![Web 3D gameplay](docs/screenshots/web_3d_gameplay.png) |
 
 ---
 
-## 🌟 核心特性与架构亮点
+## 🌟 核心特性
 
-1. **纯Web前端深度优化 (Web-First Architecture)**
-   - **渲染器适配**：配置 `gl_compatibility` 渲染方法（WebGL 2.0），完美适配 Chrome, Safari, Firefox, Edge 以及移动端手机浏览器。
-   - **Web Audio 策略**：现代浏览器默认阻止无用户交互的音频播放。框架内置 `SoundManager`，在首次用户交互（点击/触控）时自动解锁 Web AudioContext。
-   - **程序化音频合成 (Zero External Asset Dependency)**：内置音频波形与噪声合成器，发射豌豆、命中击碎、收集阳光、僵尸啃食、樱桃爆炸、割草机轰鸣等音效全部由代码动态生成，开箱即有真实音效。
-   - **响应式视口**：1280x720 基准分辨率，采用 `canvas_items` 缩放与 `keep` 纵横比，自动适配桌面全屏与手机横屏。
+### 1. 3D 渲染 + 2D 玩法（HD-2D / 2.5D）
 
-2. **高度解耦与数据驱动 (Data-Driven Design)**
-   - **植物与僵尸配置资源化**：所有属性（生命值、阳光花费、冷却时间、移速、护甲）均由 Godot 自定义 `Resource` (`PlantData`, `ZombieData`, `LevelData`) 驱动。
-   - **全局信号总线 (`EventBus`)**：单例解耦植物种植、阳光变动、波次推进、僵尸受击与胜负判定。
+- **固定透视相机**：58° 俯角、40° 垂直 FOV，从斜上方俯瞰草坪，近大远小、有真实透视深度感；相机固定保证操作（种植、铲除、点阳光）稳定可读。
+- **立体草坪场景（3D diorama）**：5×9 棋盘草坪 + 木框草坪边、左侧木地板露台与 3D 房屋立面（门/窗/屋顶）、右侧人行道与街道、
+  后排木栅栏 + 绿篱 + 低多边形树木、远景花丛与草坪边缘细节，全部由 3D 图元按调色板程序化搭建。
+- **2D 美术立牌**：植物 / 僵尸 / 豌豆 / 阳光 / 小推车都是取自原 2D 程序化美术的透明 sprite，作为始终面向相机的 billboard
+  站立在草坪上；每类单位带地面软阴影（blob shadow），僵尸行走、植物摇摆、阳光旋转等均为逐帧动画。
+- **3D 特效与反馈**：豌豆击中溅射（3D 粒子）、樱桃炸弹爆炸（粒子爆发 + 扩散光环）、铁桶/路障僵尸破甲时掉落 3D 帽子、
+  寒冰减速染色、受击闪白、僵尸倒地淡出、阳光飞向 HUD 计数器等。
+- **2D 系统零改动**：GridManager（5×9 网格）、阳光经济、波次/关卡数据、僵尸护甲/减速/啃食、小推车、胜负判定全部沿用原 2D 逻辑，
+  数据仍由 `data/` 下的 `.tres` 资源驱动。
 
-3. **双重运行模式**
-   - **Godot 4.7.2 原生项目**：直接在 Godot 4 引擎中打开即可游玩、编辑或一键导出为 Web 前端。
-   - **即开即玩 Web Preview**：随项目提供免编译的 HTML5 Canvas 独立前端副本（位于 `web_preview/`），只需运行 `python3 serve.py` 即可立即在浏览器中试玩完整游戏循环！
+### 2. 统一的「2D 像素 ↔ 3D 世界」坐标契约
+
+两个渲染端使用同一套换算，保证点击/悬停/特效位置一致：
+
+```text
+PX    = 1/45                 # 世界单位 / 游戏像素
+世界   = ((game_x - 640) * PX, height_px * PX, (game_y - 360) * PX)
+地面   = 世界 Y = 0
+```
+
+Godot 端用 `WorldRoot` 技巧：`position = (-640·PX, 0, -360·PX)`、`scale = (PX,PX,PX)`，
+其子节点直接沿用**游戏像素坐标**（`position = Vector3(game_x, height_px, game_y)`），
+所以全部玩法代码继续按 px/秒 移动、按像素常量判断，无需在逻辑里做任何换算。
+
+### 3. 离线烘焙的 Billboard 资源管线（两版本共享同一套美术）
+
+- `tools/billboard_factory.gd` 在无头/隐身窗口下加载原有 2D 程序化美术脚本（`scripts/visuals/*_visuals.gd`），
+  渲染每一类单位的动画帧，打包成横向 sprite sheet（256×256/帧，RGBA 透明）并输出 `assets/billboards/manifest.json`
+  （帧数、fps、锚点、包围盒）。
+- Godot 版 `BillboardLibrary` 直接加载这些 PNG（Sprite3D）；网页版由 `tools/build_web_assets.mjs` 把同一批 PNG
+  转成内嵌 base64 的 ES module（`web_preview/billboard_assets.js`），因此**无需任何外部美术资源、离线可玩**。
+- 新增/修改美术只需重跑烘焙工具（见下文「重新烘焙美术」）。
+
+### 4. 高度解耦与数据驱动（沿用原架构）
+
+- 植物/僵尸/关卡全部是自定义 `Resource`（`PlantData` / `ZombieData` / `LevelData`），新单位只需新增 `.tres` 并在关卡里引用。
+- `EventBus` 全局信号总线解耦种植、阳光、波次、受击、胜负。
+- `GameManager` 状态机与阳光交易事务；`SoundManager` 程序化合成全部音效（零外部音频资源）。
+
+### 5. 双重运行模式
+
+- **网页即时预览（推荐试玩）**：`web_preview/index.html` 使用 Three.js r170（本地 vendored）渲染同一套 3D 画面，
+  打开即玩，无需安装 Godot。
+- **Godot 4.7.2 原生项目**：用 Godot 打开 `project.godot` 按 F5 即可游玩/编辑/导出为 Web。
 
 ---
 
-## 📁 目录结构
+## 📁 目录结构（3D 改造后）
 
 ```text
 pvz_like_game/
-├── project.godot                     # Godot 4.7.2 核心配置文件 (GL Compatibility, Autoload, 视口设置)
-├── export_presets.cfg                # Web 导出预设模版配置
-├── icon.svg                          # 游戏矢量图标
-├── serve.py                          # 支持 COOP/COEP 隔离头的本地 Web 开发服务器
-├── web/
-│   └── index.html                    # 自定义 Godot Web 导出 HTML 模版 (带向日葵加载条与全屏按钮)
-├── web_preview/
-│   └── index.html                    # 纯前端即时预览版 (支持完整8种植物+4种僵尸+声效+波次系统)
-├── data/                             # 数据驱动资源定义 (.tres)
-│   ├── plants/                       # 8款植物的数据资源
-│   │   ├── peashooter.tres           # 豌豆射手 (100阳光, 7.5s CD)
-│   │   ├── sunflower.tres            # 向日葵 (50阳光, 生产阳光)
-│   │   ├── wallnut.tres              # 坚果墙 (50阳光, 4000血量, 裂纹阶段)
-│   │   ├── cherry_bomb.tres          # 樱桃炸弹 (150阳光, 3x3 范围1800伤害)
-│   │   ├── snow_pea.tres             # 寒冰射手 (175阳光, 50%减速与冰冻效果)
-│   │   ├── potato_mine.tres          # 土豆雷 (25阳光, 14s武装时间, 触碰秒杀)
-│   │   ├── repeater.tres             # 双发射手 (200阳光, 连发2枚豌豆)
-│   │   └── chomper.tres              # 大嘴花 (150阳光, 吞食僵尸后消化咀嚼)
-│   ├── zombies/                      # 4款僵尸的数据资源
-│   │   ├── normal_zombie.tres        # 普通僵尸 (200 HP)
-│   │   ├── conehead_zombie.tres      # 路障僵尸 (200 HP + 370 护甲, 掉落路障)
-│   │   ├── buckethead_zombie.tres    # 铁桶僵尸 (200 HP + 1100 护甲, 极高防御)
-│   │   └── flag_zombie.tres          # 旗帜僵尸 (移速加快25%, 引领大波次)
-│   └── levels/
-│       ├── level_1.tres              # 第1关：5波阶梯式进攻 + 旗帜突袭
-│       ├── level_2.tres              # 第2关：6波夜幕突袭 + 路障/铁桶夹攻
-│       └── level_3.tres              # 第3关：7波终极尸潮 + 铁桶大军连番围攻
+├── project.godot                     # Godot 配置（GL Compatibility / Web 友好）
+├── export_presets.cfg                # Web 导出预设
+├── serve.py                          # 本地 Web 服务器（COOP/COEP 头，供 web_preview / Godot Web 导出）
+├── README.md
+├── assets/
+│   └── billboards/                   # ★ 烘焙好的 billboard 资源（由 tools/billboard_factory 生成）
+│       ├── manifest.json             #   帧数/fps/锚点/包围盒 元数据
+│       ├── p_*.png  z_*.png  i_*.png #   横向 sprite sheet（透明背景）
+├── docs/
+│   ├── 3d-render-spec.md             # 3D 改造技术规范（坐标/相机/资源/架构/验收）
+│   ├── billboards_contact.png        # billboard 美术资源速览
+│   └── screenshots/                  # 最终效果截图
+├── data/                             # 数据驱动资源（与原版一致）
+│   ├── plants/  zombies/  levels/    # 8 植物 / 4 僵尸 / 3 关卡
 ├── scenes/
-│   ├── main_menu.tscn                # 主界面与关卡选择场景
-│   ├── main.tscn                     # 关卡战斗场景 (草坪、管理器、小推车、HUD)
-│   ├── plants/                       # 植物场景实体
-│   ├── zombies/                      # 僵尸场景实体
-│   ├── projectiles/                  # 弹道实体 (豌豆、冰豌豆)
-│   ├── items/                        # 阳光与小推车割草机
-│   ├── effects/                      # 粒子命中碎裂与爆炸特效
-│   └── ui/                           # HUD 卡槽、阳光计数器、铲子、波次进度条
-└── scripts/
-    ├── autoload/                     # 全局单例
-    │   ├── event_bus.gd              # 全局信号总线
-    │   ├── sound_manager.gd          # Web 音效合成与播放器
-    │   └── game_manager.gd           # 游戏状态机与金钱交易事务
-    ├── core/                         # 核心战斗与场地逻辑
-    │   ├── grid_manager.gd           # 5x9 草坪坐标系转换、植物种植检测与高亮预览
-    │   ├── sun_manager.gd            # 天空自然落阳与向日葵产阳调度
-    │   └── wave_manager.gd           # 关卡波次推进与胜负判定
-    ├── plants/                       # 植物控制脚本
-    ├── zombies/                      # 僵尸状态机 (行走/啃食/减速/死亡)
-    ├── projectiles/                  # 弹道碰撞与伤害处理
-    ├── ui/                           # 卡牌 CD 扫描蒙版与铲子交互
-    └── visuals/                      # 矢量程序化图形绘制组件
+│   ├── main_menu.tscn                # 主界面/关卡选择（2D UI，未改动）
+│   ├── main.tscn                     # ★ 3D 战斗场景：Environment / DirectionalLight / Camera3D /
+│   │                                 #   WorldRoot（Board、GridManager、SunManager、WaveManager、LawnMowers）+ HUD
+│   ├── ui/                           # HUD 卡槽/阳光/铲子/波次条（CanvasLayer，2D UI 未改动）
+│   ├── plants/ zombies/ projectiles/ items/ effects/   # ★ 全部改为 Area3D + Billboard2D 立牌
+├── scripts/
+│   ├── main.gd                       # Node3D 场景入口：相机/WorldRoot/搭建立体场景/关卡初始化
+│   ├── core/
+│   │   ├── world_space.gd            # ★ 2D 像素 ↔ 3D 世界坐标契约 + 屏幕→地面射线换算
+│   │   ├── board_builder.gd          # ★ 程序化搭建 3D diorama（草坪/露台/房屋/街道/树木/花丛）
+│   │   ├── grid_manager.gd           # 悬停高亮/虚影预览/种植铲除/阳光点选
+│   │   ├── sun_manager.gd  wave_manager.gd
+│   ├── visuals/
+│   │   ├── billboard2d.gd            # ★ 面向相机的 billboard 节点（逐帧动画 + 色调控制）
+│   │   ├── billboard_library.gd      # ★ sheet/manifest 加载、实例化、软阴影、幽灵预览
+│   │   ├── plant_visuals.gd  zombie_visuals.gd  item_visuals.gd   # 原 2D 程序化美术（烘焙用，运行时不再直接绘制）
+│   ├── plants/ zombies/ projectiles/ items/ effects/   # ★ 玩法逻辑（3D 位置、仍按 px/秒）
+│   ├── autoload/                     # EventBus / SoundManager / GameManager
+│   └── resources/                    # PlantData / ZombieData / LevelData
+├── tools/
+│   ├── billboard_factory.gd/.tscn    # 美术烘焙工具（离线生成 assets/billboards）
+│   ├── build_web_assets.mjs          # 生成 web_preview/billboard_assets.js
+│   ├── preview_billboards.gd/.tscn   # 3D diorama 预览/验证场景（Lead 参考场景）
+│   └── verify/                       # 独立验证工具（Playwright 截图、Godot 截图/逻辑冒烟测试）
+└── web_preview/
+    ├── index.html                    # ★ Three.js 3D 网页预览（DOM HUD/菜单 + 3D 场景）
+    ├── three.module.min.js           #   vendored Three.js r170（本地依赖、无 CDN）
+    └── billboard_assets.js           #   billboard 资源（base64 内嵌，由 tools/build_web_assets.mjs 生成）
 ```
-
----
-
-## 🕹️ 游戏核心系统实现
-
-### 1. 草坪网格系统 (`GridManager`)
-- 规格：5行（Lane 0 ~ 4）× 9列（Col 0 ~ 8）。
-- 坐标换算：
-  - `world_to_grid(Vector2) -> Vector2i`
-  - `grid_to_world(Vector2i) -> Vector2`
-- 特色：选中植物卡片时，鼠标在草坪悬停会显示对应单元格的**虚影预览**和**红/绿放置高亮**；点击右键随时取消选中。
-
-### 2. 阳光经济系统 (`SunManager`)
-- 自然落阳：每隔 8~10 秒从天空顶部随机掉落并在指定高度悬停漂浮。
-- 向日葵产阳：周期性从花盘弹出抛物线阳光。
-- 交互动效：点击阳光时，触发平滑缓动（Tween），阳光缩放并飞入左上角阳光计数框，数字弹出反馈动画。
-
-### 3. 卡牌卡槽与冷却系统 (`SeedPacket`)
-- 支持动态卡组加载（由关卡配置的 `available_plants` 自动生成）。
-- 实时监测阳光充足度（阳光不足时卡片呈现变暗灰色）。
-- 种植后触发顺滑的倒计时遮罩扫描（Vertical Fill Overlay），冷却完毕后恢复可用。
-
-### 4. 僵尸攻击与护甲系统 (`BaseZombie`)
-- 状态机：`WALKING`（行走） ↔ `EATING`（啃食） ↔ `DYING`（死亡）。
-- 独立护甲层：路障僵尸与铁桶僵尸拥有独立的护甲血条，承受伤害时优先扣除护甲值，护甲归零时触发帽子脱落动画。
-- 寒冰减速机制：受到冰豌豆攻击时，僵尸身体呈现冷蓝色，移动速度与啃食速度同时降低 50%，持续 5 秒。
-
-### 5. 紧急防线：小推车割草机 (`LawnMower`)
-- 5个通道各配备一辆小推车。
-- 当僵尸突破防线接近草坪最左侧时，小推车自动点火轰鸣，以 650px/s 的速度冲刷整条通道，秒杀该行所有僵尸，作为玩家的最后防线。
 
 ---
 
 ## 🚀 启动与体验指南
 
-### 方式一：直接在浏览器中体验即时预览 (无需安装 Godot)
-本项目包含纯前端完整的可运行实现：
+### 方式一：浏览器即时预览（无需安装 Godot）
+
 ```bash
-# 启动内置的 Web 开发服务器
+# 在项目根目录启动自带 Web 服务器
 python3 serve.py 8080
 ```
-在浏览器中打开：
-👉 **http://localhost:8080/web_preview/**
 
-即可立即开始游戏，支持点击种植、收集阳光、使用铲子、查看波次警告与通关！
+打开 👉 **http://localhost:8080/web_preview/**
 
----
+- 选择关卡 → 3D 草坪场景；点击顶部卡牌选择植物，再点击草坪格子种植；点击掉落的阳光收集；
+  右侧铲子/菜单按钮等与原版一致。
+- 说明：页面使用 ES module（Three.js 本地模块）加载，必须通过 HTTP 服务访问，**不能直接双击 `index.html`（file://）打开**。
 
-### 方式二：在 Godot 4.7.2 引擎中打开与编辑
-1. 打开 **Godot 4.7.2** 编辑器。
-2. 点击 **Import**（导入），选择本目录下的 `project.godot`。
-3. 打开后按 **F5** 即可直接运行主场景 `res://scenes/main.tscn`。
+### 方式二：Godot 4.7.2 引擎中打开与编辑
 
----
+1. 用 **Godot 4.7.2** 导入本目录下的 `project.godot`。
+2. 按 **F5**（主场景为 `scenes/main_menu.tscn`）选择关卡即可进入 3D 战斗场景。
+3. 3D 场景结构：`scenes/main.tscn`（`Main` Node3D）；立体草坪由 `scripts/core/board_builder.gd` 在运行时程序化搭建。
 
-### 方式三：导出为纯 Web 前端应用 (HTML5 / WebAssembly)
-1. 在 Godot 4.7.2 菜单中选择 **Project** -> **Export...**（项目 -> 导出）。
-2. 在预设列表中已内置好 **Web** 预设（基于 `export_presets.cfg`）。
-3. 确保导出模版为 **Compatibility** 渲染模式（已预先配置）。
-4. 点击 **Export Project**，导出到 `web_export/` 目录。
-5. 运行 `python3 serve.py 8080` 并访问 `http://localhost:8080/web_export/`。
+### 方式三：导出为纯 Web 前端应用（HTML5 / WebAssembly）
 
-> 💡 **Web 开发关键注意事项**：  
-> 现代浏览器对 WebAssembly 和 SharedArrayBuffer 有严格的安全上下文限制。运行 Godot 4 Web 项目时必须在 HTTP 响应头中提供：  
-> - `Cross-Origin-Opener-Policy: same-origin`  
-> - `Cross-Origin-Embedder-Policy: require-corp`  
-> 项目随附的 `serve.py` 已经预置了这些标头，能够直接保证 Web 端平稳运行。
+1. Godot 4.7.2 中 **Project → Export…**，选择已内置的 **Web** 预设（`export_presets.cfg`）。
+2. 使用 **GL Compatibility** 渲染模式（已预配置），导出到 `web_export/`。
+3. `python3 serve.py 8080` 后访问 `http://localhost:8080/web_export/`。
+
+> 💡 浏览器运行 Godot Web 需要跨源隔离头：`Cross-Origin-Opener-Policy: same-origin` 与
+> `Cross-Origin-Embedder-Policy: require-corp`；随附的 `serve.py` 已预置，可直接使用。
 
 ---
 
-## 🧩 如何扩展框架
+## 🧭 3D 渲染实现要点
 
-### 1. 新增一种植物（只需 2 步）
-1. 在 `data/plants/` 新建一个 `PlantData` 资源（如 `cabbage_pult.tres`），设置名称、费用、冷却时间。
-2. 继承 `BasePlant` 编写脚本或复用攻击逻辑。
-3. 将新 `.tres` 添加进关卡资源 `LevelData.available_plants` 中，卡槽将自动出现并运作！
+1. **相机**：`Camera3D`，FOV 40°、俯角 58°、距离 23（世界单位），看向草坪中心；固定机位。Godot 中由
+   `WorldSpace.default_camera_position()` 计算，网页版使用相同数值。
+2. **坐标**：见上文「统一的坐标契约」；`WorldSpace`（Godot）/ `worldOf()`（Web）负责换算。
+3. **Billboard**：`Billboard2D`（Godot `Node3D` + 子 `Sprite3D(billboard)`；Web `THREE.Sprite`）的节点原点即
+   立牌锚点（脚底/漂浮物中心），读取 manifest 的锚点自动对齐地面/中心，按帧率播放 sprite sheet 动画。
+4. **点击/悬停**：屏幕点 → 相机射线与地面 Y=0 求交 → 游戏像素坐标 → 原 GridManager 网格逻辑；
+   阳光用「3D 位置投影到屏幕后的像素距离」点选（Godot）／屏幕投影后的精灵位置（Web）。
+5. **3D 特效**：豌豆溅射/樱桃爆炸使用 3D 粒子 + 扩散光环（Godot 用 Sprite3D 粒子规避 `CPUParticles3D`
+   在缩放父节点下的尺度问题）；破甲掉落 3D 帽子；僵尸死亡淡出/压扁。
+6. **UI**：HUD/菜单保持原 2D UI（Godot `CanvasLayer` / Web DOM），叠加在 3D 画面之上，未改布局与交互。
 
-### 2. 新增一种僵尸
-1. 在 `data/zombies/` 新建 `ZombieData` 资源（如 `newspaper_zombie.tres`），设置移速和生命值。
-2. 在关卡 `LevelData.waves` 中指定其出现的波次与通道索引即可！
+---
 
+## 🔁 重新烘焙美术 / 重建网页资源（可选）
+
+美术资源已提交在 `assets/billboards/`，正常游玩无需重建；修改 2D 程序化美术或新增单位后：
+
+```bash
+# 1) 重新烘焙 billboard sprite sheet + manifest（需要 Godot 4.7.2；会打开窗口渲染后自动退出）
+godot --path . res://tools/billboard_factory.tscn
+
+# 2) 重新生成网页版内嵌资源（需要 Node.js ≥ 18）
+node tools/build_web_assets.mjs
+```
+
+新增一种植物/僵尸并复用它作为 3D 立牌的步骤：
+
+1. 在 `data/plants/`（或 `zombies/`）新增 `PlantData` 资源，绑定新场景；
+2. 在 `scenes/plants/` 新增对应 `Area3D` 实体场景 + 脚本（参考现有植物），脚本里指定 billboard sheet 名；
+3. 在 `scripts/visuals/plant_visuals.gd` 增加对应 2D 程序化美术（`_draw_xxx()`），并把它加入
+   `tools/billboard_factory.gd` 的烘焙任务表与 `BillboardLibrary.PLANT_SHEETS` 映射；
+4. 重新运行上面的烘焙/生成命令，把新 `.tres` 加入关卡 `available_plants` 即可。
+
+---
+
+## 🧪 验证与测试
+
+`tools/verify/` 下提供独立验证工具（构建/无头环境）：
+
+- `tools/verify/web_shot.mjs`：用 Playwright headless Chromium 打开网页预览，等待 `window.__pvzReady`、
+  检查 `window.__pvzErrors` 与控制台错误，截图到 `screenshots/`（支持 `--mode menu|pause|baseline2d`、`--level N`）。
+- `tools/verify/capture_godot.gd/.tscn` + shell wrapper：加载 `scenes/main.tscn`，用真实 API 种植/刷怪/放阳光，
+  等待数秒后保存视口截图；`--setup empty|plants|zombies|suns|gameplay|pause`。
+- `tools/verify/` 内还包含 Godot headless 逻辑冒烟测试（脚本化种植、波次推进、胜负路径）与 QA 报告模板。
+
+> 无头 Linux/WSL2 软件渲染（llvmpipe + GL Compatibility）下，方向光阴影贴图不生效（`shader_gles3.cpp:802`
+> 环境限制）；这不影响真实 GPU 与网页版，截图中的“落地感”由每单位地面软阴影（blob shadow）保证。
+
+---
+
+## 🕹️ 游戏核心系统（与原版一致）
+
+- **草坪网格**：5 行 × 9 列；悬停高亮、植物虚影预览、右键取消、铲子移除。
+- **阳光经济**：自然落阳 + 向日葵产阳；点击收集后飞向 HUD 计数器。
+- **卡牌/冷却**：按关卡 `available_plants` 动态生成卡槽，阳光不足变暗，种植后冷却扫描。
+- **僵尸**：4 种（普通/路障/铁桶/旗帜），独立护甲、破甲掉落、寒冰减速 5s、啃食、死亡；房屋到达判负。
+- **植物**：豌豆射手 / 向日葵 / 坚果墙（三阶段裂纹）/ 樱桃炸弹（3×3）/ 寒冰射手 / 土豆雷（14s 武装）/
+  双发射手 / 大嘴花（吞食咀嚼）。
+- **小推车**：每行一辆，僵尸逼近时自动触发冲刷整行。
+- **波次/关卡**：3 关，旗帜大波提示、波次进度条、胜利/失败结算、暂停/重开/返回菜单。
+
+---
+
+## 🧩 数据资源速查
+
+| 植物 | 阳光 | 冷却 | 说明 |
+| --- | --- | --- | --- |
+| Peashooter 豌豆射手 | 100 | 7.5s | 直线豌豆 20 伤害 |
+| Sunflower 向日葵 | 50 | — | 每 24s 产 25 阳光 |
+| Wall-nut 坚果墙 | 50 | — | 4000 血，三段裂纹 |
+| Cherry Bomb 樱桃炸弹 | 150 | — | 3×3 范围 1800 伤害 |
+| Snow Pea 寒冰射手 | 175 | — | 减速 50%，持续 5s |
+| Potato Mine 土豆雷 | 25 | — | 14s 武装，触碰秒杀 |
+| Repeater 双发射手 | 200 | — | 连发两枚豌豆 |
+| Chomper 大嘴花 | 150 | — | 吞食僵尸后咀嚼 30s |
+
+| 僵尸 | 血量 | 特点 |
+| --- | --- | --- |
+| Normal 普通 | 200 | 基础 |
+| Conehead 路障 | 200 + 370 护甲 | 破甲掉落路障 |
+| Buckethead 铁桶 | 200 + 1100 护甲 | 极高防御，破甲掉落铁桶 |
+| Flag 旗帜 | 200 | 移速 ×1.25，引领大波 |
+
+| 关卡 | 波次 | 特点 |
+| --- | --- | --- |
+| 1 前院草坪 | 5 | 入门阶梯波次 |
+| 2 夜幕突袭 | 6 | 路障/铁桶夹攻 |
+| 3 尸潮狂欢 | 7 | 铁桶大军终极围攻 |
+
+---
+
+## 设计文档
+
+完整技术契约见 [`docs/3d-render-spec.md`](docs/3d-render-spec.md)：坐标/相机契约、billboard 资源 schema、
+Godot 3D 场景架构与实体契约、网页版 Three.js 架构、验证命令与验收清单。

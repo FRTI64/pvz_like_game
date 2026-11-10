@@ -9,13 +9,12 @@ var chew_timer: float = 0.0
 
 func _setup() -> void:
 	is_chewing = false
-	if visual_node != null and visual_node.has_method("set_chewing"):
-		visual_node.set_chewing(false)
+	set_billboard_sheet("p_chomper_0")
 
 func _process(delta: float) -> void:
 	if is_dead:
 		return
-	
+
 	if is_chewing:
 		chew_timer -= delta
 		if chew_timer <= 0.0:
@@ -28,28 +27,25 @@ func _check_for_prey() -> void:
 	for z in zombies:
 		if is_instance_valid(z) and not z.get("is_dead"):
 			var z_row: int = z.get("row")
-			if z_row == row and z.global_position.x > global_position.x:
-				var dist: float = z.global_position.x - global_position.x
+			if z_row == row and z.position.x > position.x:
+				var dist: float = z.position.x - position.x
 				if dist <= bite_range:
 					_chomp_zombie(z)
 					return
 
-func _chomp_zombie(prey: Node2D) -> void:
+func _chomp_zombie(prey: Node3D) -> void:
 	SoundManager.play_sound("chomp")
 	is_chewing = true
 	chew_timer = digest_time
-	
+
 	# Eliminate the target zombie
 	if prey.has_method("die"):
 		prey.die(false)
 	else:
 		prey.queue_free()
-	
-	if visual_node != null and visual_node.has_method("set_chewing"):
-		visual_node.set_chewing(true)
+
+	set_billboard_sheet("p_chomper_1")
 
 func _finish_digesting() -> void:
 	is_chewing = false
-	if visual_node != null and visual_node.has_method("set_chewing"):
-		visual_node.set_chewing(false)
-
+	set_billboard_sheet("p_chomper_0")

@@ -2,6 +2,5 @@
 
 [ext_resource type="Script" path="res://scripts/effects/explosion_effect.gd" id="1_expl"]
 
-[node name="ExplosionEffect" type="Node2D"]
+[node name="ExplosionEffect" type="Node3D"]
 script = ExtResource("1_expl")
-
