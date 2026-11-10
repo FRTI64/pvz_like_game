@@ -19,7 +19,7 @@ const ROOT_SCALE: Vector3 = Vector3(PX, PX, PX)
 const CAMERA_FOV: float = 40.0
 const CAMERA_TARGET: Vector3 = Vector3(0.0, 1.2, 2.0)
 const CAMERA_ELEVATION_DEG: float = 58.0
-const CAMERA_DISTANCE: float = 25.0
+const CAMERA_DISTANCE: float = 23.0
 
 
 static func setup_world_root(root: Node3D) -> void:

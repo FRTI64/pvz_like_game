@@ -71,10 +71,15 @@ Rules:
 - `Camera3D`, perspective, `fov = 40` (vertical), aspect from 1280x720 viewport,
   near 0.1, far 200.
 - Target point (world): `(0, 1.2, 2.0)`.
-- Camera position = target + `25.0 * (0, sin(58°), cos(58°))`
-  = approx `(0.0, 21.4, 15.5)`, looking at the target.
-  (Reference: this frames the board with the lawn's far edge at ~13–20% of
-  screen height, near edge at ~88%, lawn ~60% of screen width centered.)
+- Camera position = target + `23.0 * (0, sin(58°), cos(58°))`
+  = approx `(0.0, 20.7, 14.2)`, looking at the target.
+  (`WorldSpace.CAMERA_DISTANCE = 23.0`, `CAMERA_ELEVATION_DEG = 58.0`,
+  `CAMERA_FOV = 40.0`, `WorldSpace.default_camera_position()` returns this.)
+  Reference framing (validated): lawn far edge at ~22% of screen height, lawn
+  near edge at ~83%, lawn ~66% of screen width centered; top ~120 px is HUD.
+  A validated reference render of the full diorama is
+  `.tools/shots/foundation_preview.png` (Lead tool scene
+  `tools/preview_billboards.tscn`).
 - Use a **fixed camera** (gameplay must be readable). A very subtle mouse
   parallax (±0.3 world units) is allowed but optional.
 - Web uses the exact same numbers via THREE.PerspectiveCamera.
@@ -108,6 +113,19 @@ canvas textures for grass/asphalt are allowed in web, but not required):
   (`#bcd9ff` sky / `#5a6b3a` ground, energy ~0.5–0.7). Cast real-time shadows
   for 3D props (house/fence/trees/border) if performance allows; characters use
   blob shadows (see 3.2), not shadow maps.
+- **Background / sky (important, validated):** with this camera the horizon is
+  above the frame — the top of the screen is still looking down at ~38° below
+  horizontal, so the visible upper band is nearest background geometry, not
+  sky. Do NOT use `Environment.BG_SKY` / `ProceduralSkyMaterial` in the
+  `gl_compatibility` renderer (verified to break the render on this stack —
+  the whole 3D scene disappeared). Use `Environment.BG_COLOR` (light sky blue,
+  e.g. `#b3d9f2`) and design the upper band as: base-ground far edge ending at
+  local z ≈ -60 (just behind the far lawn edge), a wooden fence + green hedge
+  at local z ≈ 10..60 (height ~60–100 game px), and 3–5 low-poly trees rooted
+  at local z ≈ -20..-40 with only canopies showing above the hedge. The HUD
+  covers the top ~120 px anyway. A manual backdrop mesh (large plane with a
+  gradient texture placed ~150–250 px behind the hedge) is allowed if it stays
+  in front of the ground's far edge, but keep it subtle.
 
 ## 3. Billboard art contract
 
