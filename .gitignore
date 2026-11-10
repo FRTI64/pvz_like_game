@@ -4,5 +4,5 @@
 __pycache__/
 *.pyc
 
-# verification output
-screenshots/
+# verification output (QA evidence; final docs screenshots are under docs/screenshots/)
+/screenshots/

@@ -1,0 +1,96 @@
+{
+  "ok": true,
+  "startedAt": "2026-11-10T08:23:22.933Z",
+  "checks": [
+    {
+      "name": "chilled tint: visual_modulate is CHILL_TINT (r<g<b)",
+      "ok": true,
+      "detail": {
+        "modulate": "(0.55, 0.8, 1.25, 1.0)"
+      }
+    },
+    {
+      "name": "chilled tint: entity pixels change visibly",
+      "ok": true,
+      "detail": {
+        "meanAbsDiff": 7.76,
+        "fracChanged": 0.1584,
+        "maxAbsDiff": 233.7
+      }
+    },
+    {
+      "name": "chilled tint: blue/red ratio increases (cooler look)",
+      "ok": true,
+      "detail": {
+        "before": {
+          "meanR": 112.2,
+          "meanB": 88.4,
+          "bOverR": 0.788
+        },
+        "after": {
+          "meanR": 106.2,
+          "meanB": 88.4,
+          "bOverR": 0.833
+        }
+      }
+    },
+    {
+      "name": "armor break: billboard sheet swaps z_conehead -> z_normal",
+      "ok": true,
+      "detail": {
+        "before": "z_conehead",
+        "after": "z_normal"
+      }
+    },
+    {
+      "name": "armor break: entity pixels change visibly (cone removed/prop falling)",
+      "ok": true,
+      "detail": {
+        "meanAbsDiff": 11.77,
+        "fracChanged": 0.1655,
+        "maxAbsDiff": 233.7
+      }
+    }
+  ],
+  "tint": {
+    "sheet_before": "z_normal",
+    "sheet_after": "z_normal",
+    "region": {
+      "feet": [
+        756.496643066406,
+        340.949310302734
+      ],
+      "h": 143,
+      "span": 68.9158630371094,
+      "w": 104,
+      "x": 704,
+      "y": 225
+    },
+    "diff": {
+      "meanAbsDiff": 7.76,
+      "fracChanged": 0.1584,
+      "maxAbsDiff": 233.7
+    }
+  },
+  "armor": {
+    "sheet_before": "z_conehead",
+    "sheet_after": "z_normal",
+    "region": {
+      "feet": [
+        756.252075195312,
+        340.949310302734
+      ],
+      "h": 143,
+      "span": 68.9158630371094,
+      "w": 103,
+      "x": 704,
+      "y": 225
+    },
+    "diff": {
+      "meanAbsDiff": 11.77,
+      "fracChanged": 0.1655,
+      "maxAbsDiff": 233.7
+    }
+  },
+  "elapsedMs": 10107
+}

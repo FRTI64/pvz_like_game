@@ -1,0 +1,18 @@
+{
+  "ok": true,
+  "cdpHost": "http://127.0.0.1:9222",
+  "url": "http://localhost:8121/web_preview/index.html?shot=1",
+  "ready": "ready",
+  "fps": 52.3,
+  "frames": 105,
+  "webgl": {
+    "webgl2": true,
+    "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+    "renderer": "ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+  },
+  "errors": {
+    "exceptions": [],
+    "console": [],
+    "log": []
+  }
+}

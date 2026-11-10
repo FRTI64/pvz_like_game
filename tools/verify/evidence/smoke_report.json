@@ -1,0 +1,294 @@
+{
+  "checks": [
+    {
+      "detail": {
+        "root": "Node3D"
+      },
+      "name": "main scene loaded (3D root)",
+      "ok": true,
+      "required": true
+    },
+    {
+      "detail": null,
+      "name": "GridManager/SunManager/WaveManager found",
+      "ok": true,
+      "required": true
+    },
+    {
+      "detail": null,
+      "name": "HUD (CanvasLayer) found",
+      "ok": true,
+      "required": true
+    },
+    {
+      "detail": {
+        "state": 1
+      },
+      "name": "GameManager state PLAYING",
+      "ok": true,
+      "required": true
+    },
+    {
+      "detail": {
+        "expected": 150,
+        "sun": 150
+      },
+      "name": "initial sun == level initial_sun",
+      "ok": true,
+      "required": true
+    },
+    {
+      "detail": {
+        "cells": 0
+      },
+      "name": "grid starts empty",
+      "ok": true,
+      "required": true
+    },
+    {
+      "detail": {
+        "plant": true
+      },
+      "name": "click plants peashooter at cell (col2,row1)",
+      "ok": true,
+      "required": true
+    },
+    {
+      "detail": {
+        "sun": 50
+      },
+      "name": "sun spent 100 by planting",
+      "ok": true,
+      "required": true
+    },
+    {
+      "detail": null,
+      "name": "selection cleared after planting",
+      "ok": true,
+      "required": true
+    },
+    {
+      "detail": {
+        "cells_after": 1,
+        "cells_before": 1,
+        "still_peashooter": true
+      },
+      "name": "occupied cell rejects planting",
+      "ok": true,
+      "required": true
+    },
+    {
+      "detail": {
+        "sun": 50
+      },
+      "name": "occupied-cell rejection did not spend sun",
+      "ok": true,
+      "required": true
+    },
+    {
+      "detail": {
+        "planted": false
+      },
+      "name": "insufficient sun rejects planting",
+      "ok": true,
+      "required": true
+    },
+    {
+      "detail": {
+        "sun": 1010
+      },
+      "name": "GameManager.add_sun works",
+      "ok": true,
+      "required": true
+    },
+    {
+      "detail": {
+        "plant": "sunflower"
+      },
+      "name": "click plants sunflower at (3, 1)",
+      "ok": true,
+      "required": true
+    },
+    {
+      "detail": {
+        "plant": "wallnut"
+      },
+      "name": "click plants wallnut at (4, 2)",
+      "ok": true,
+      "required": true
+    },
+    {
+      "detail": {
+        "plant": "snow_pea"
+      },
+      "name": "click plants snow_pea at (2, 3)",
+      "ok": true,
+      "required": true
+    },
+    {
+      "detail": {
+        "plant": "chomper"
+      },
+      "name": "click plants chomper at (3, 0)",
+      "ok": true,
+      "required": true
+    },
+    {
+      "detail": {
+        "plants": 5
+      },
+      "name": "5 plants placed via input",
+      "ok": true,
+      "required": true
+    },
+    {
+      "detail": {
+        "suns": 1,
+        "waited_frames": 240
+      },
+      "name": "natural sun spawns",
+      "ok": true,
+      "required": true
+    },
+    {
+      "detail": {
+        "after": 610,
+        "before": 585,
+        "screen": "(328.8628, 352.7058)"
+      },
+      "name": "clicking projected sun screen position adds +25",
+      "ok": true,
+      "required": true
+    },
+    {
+      "detail": {
+        "after": 635,
+        "before": 610
+      },
+      "name": "Sun.collect() adds +25",
+      "ok": true,
+      "required": true
+    },
+    {
+      "detail": {
+        "spawned": 1,
+        "waited_frames": 0
+      },
+      "name": "wave spawns zombies (zombie_spawned signal)",
+      "ok": true,
+      "required": true
+    },
+    {
+      "detail": {
+        "alive": 1
+      },
+      "name": "alive_zombies populated",
+      "ok": true,
+      "required": true
+    },
+    {
+      "detail": {
+        "initial": -1,
+        "wave": 0
+      },
+      "name": "wave index advanced",
+      "ok": true,
+      "required": true
+    },
+    {
+      "detail": {
+        "dx": -12.000732421875,
+        "x0": 1225.19421386719,
+        "x1": 1213.19348144531
+      },
+      "name": "zombie walks left (position.x decreases)",
+      "ok": true,
+      "required": true
+    },
+    {
+      "detail": {
+        "deaths": 1,
+        "waited_frames": 90
+      },
+      "name": "peashooter projectile kills zombie",
+      "ok": true,
+      "required": true
+    },
+    {
+      "detail": {
+        "hp_after": 3800,
+        "hp_before": 4000
+      },
+      "name": "zombie eats plant (plant health decreases)",
+      "ok": true,
+      "required": true
+    },
+    {
+      "detail": {
+        "waited_frames": 10
+      },
+      "name": "lawnmower triggers on approaching zombie",
+      "ok": true,
+      "required": true
+    },
+    {
+      "detail": null,
+      "name": "HUD pause button pauses tree",
+      "ok": true,
+      "required": true
+    },
+    {
+      "detail": null,
+      "name": "pause panel visible",
+      "ok": true,
+      "required": true
+    },
+    {
+      "detail": null,
+      "name": "second press resumes",
+      "ok": true,
+      "required": true
+    },
+    {
+      "detail": {
+        "state": 4
+      },
+      "name": "victory: GameManager VICTORY + panel visible",
+      "ok": true,
+      "required": true
+    },
+    {
+      "detail": {
+        "state": 3
+      },
+      "name": "defeat: GameManager GAME_OVER + panel visible",
+      "ok": true,
+      "required": true
+    },
+    {
+      "detail": {
+        "frames": 1802
+      },
+      "name": "ran >= 1800 physics frames",
+      "ok": true,
+      "required": true
+    }
+  ],
+  "counters": {
+    "huge_wave": 0,
+    "mower_triggered": 1,
+    "plant_died": 0,
+    "sun_amount_events": 9,
+    "zombie_died": 4,
+    "zombie_spawned": 6
+  },
+  "frames_run": 1802,
+  "is_3d": true,
+  "level": "res://data/levels/level_1.tres",
+  "ok": true,
+  "optional_failed": [],
+  "passed": 34,
+  "required_failed": [],
+  "total": 34,
+  "warnings": []
+}

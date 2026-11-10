@@ -1,0 +1,63 @@
+{
+  "ok": true,
+  "mode": "baseline2d",
+  "out": "screenshots/web_2d_baseline.png",
+  "startedAt": "2026-11-10T08:24:16.152Z",
+  "cdpHost": "http://127.0.0.1:9222",
+  "host": {
+    "Browser": "Chrome/157.0.8103.39",
+    "File-Path-Style": "windows",
+    "Protocol-Version": "1.3",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.0.0 Safari/537.36",
+    "V8-Version": "15.7.112.23",
+    "WebKit-Version": "537.36 (@9a31f0acec1854d44e49a73fbf8017598151a583)",
+    "webSocketDebuggerUrl": "ws://127.0.0.1:9222/devtools/browser/cb7c1365-8e05-4d71-9866-efbe497e3059"
+  },
+  "server": {
+    "base": "http://127.0.0.1:8123",
+    "startedByHarness": true
+  },
+  "tabId": "4CA9E46651C0F77F8A66ABD108AC16F9",
+  "url": "http://localhost:8123/screenshots/baseline_web/index.html",
+  "navMs": 818,
+  "baseline": {
+    "menuShot": "screenshots/web_2d_menu_baseline.png",
+    "menuBytes": 369332,
+    "setup": {
+      "ok": true,
+      "plants": 6,
+      "zombies": 4
+    }
+  },
+  "png": {
+    "bytes": 45978
+  },
+  "imageStats": {
+    "yAvg": 90.66,
+    "yMin": 16,
+    "yMax": 235,
+    "satAvg": 25.54,
+    "uniform": false,
+    "dark": false,
+    "likelyBlank": false
+  },
+  "menuImageStats": {
+    "yAvg": 51.46,
+    "yMin": 30,
+    "yMax": 235,
+    "satAvg": 10.02,
+    "uniform": false,
+    "dark": false,
+    "likelyBlank": false
+  },
+  "errors": {
+    "exceptions": [],
+    "console": [],
+    "log": [],
+    "crashes": []
+  },
+  "consoleWarnings": [],
+  "errorCount": 0,
+  "warnings": [],
+  "elapsedMs": 4910
+}

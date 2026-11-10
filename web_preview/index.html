@@ -92,7 +92,7 @@
     .card:hover { transform: translateY(-2px); }
     .card.selected { border-color: #ffd700; box-shadow: 0 0 10px #ffd700; transform: translateY(-3px); }
     .card.disabled { filter: grayscale(80%) brightness(60%); cursor: not-allowed; }
-    .card-title { font-size: 10px; font-weight: bold; color: #332211; text-align: center; }
+    .card-title { font-size: 9px; font-weight: bold; color: #332211; text-align: center; white-space: nowrap; }
     .card-icon { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; }
     .card-cost { font-size: 12px; font-weight: bold; color: #1a1a1a; }
     .card-cooldown {
@@ -885,8 +885,8 @@
     const CAM_PITCH = THREE.MathUtils.degToRad(58.0);
     const CAM_FOV = 40;
 
-    const BASE_Y = -0.12;               // far base ground top (never coplanar with gameplay ground)
-    const PLATFORM_TOP = -0.06;         // patio / sidewalk / surrounding grass top
+    const BASE_Y = -2 * PX;             // far base ground top: 2 game px below walkable surfaces
+    const PLATFORM_TOP = 0.0;           // patio / sidewalk walkable tops = gameplay ground Y
     const GAME_GROUND = 0.0;            // lawn tile tops = gameplay Y (spec §2)
 
     const BOARD_X0 = (0 - 640) * PX;
@@ -956,101 +956,22 @@
     function makeSkyTexture() {
       return canvasTexture(8, 512, (g, w, h) => {
         const grad = g.createLinearGradient(0, 0, 0, h);
-        grad.addColorStop(0.0, '#79b9e0');
-        grad.addColorStop(0.42, '#8ec9e8');
-        grad.addColorStop(0.72, '#d8e4d0');
-        grad.addColorStop(0.90, '#f0e6c4');
-        grad.addColorStop(1.0, '#f8e6bd');
+        grad.addColorStop(0.0, '#a5d3ef');
+        grad.addColorStop(0.35, '#b3d9f2');
+        grad.addColorStop(0.7, '#cfe6f2');
+        grad.addColorStop(1.0, '#e2eef0');
         g.fillStyle = grad; g.fillRect(0, 0, w, h);
       });
     }
 
-    function makeBackdropTexture() {
-      return canvasTexture(1024, 256, (g, w, h) => {
-        // Bright sky gradient (top 62% of the matte painting).
-        const sky = g.createLinearGradient(0, 0, 0, h * 0.72);
-        sky.addColorStop(0.0, '#7fbede');
-        sky.addColorStop(0.55, '#9ed6ec');
-        sky.addColorStop(0.85, '#d8e8dc');
-        sky.addColorStop(1.0, '#f2e7c8');
-        g.fillStyle = sky;
-        g.fillRect(0, 0, w, h);
-
-        const bump = (baseY, amp, step, color) => {
-          g.fillStyle = color;
-          g.beginPath();
-          g.moveTo(0, h);
-          g.lineTo(0, baseY);
-          for (let x = 0; x <= w; x += step) {
-            const y = baseY - Math.abs(Math.sin(x * 0.004 + baseY)) * amp - Math.sin(x * 0.011) * amp * 0.35;
-            g.lineTo(x, y);
-          }
-          g.lineTo(w, h);
-          g.closePath();
-          g.fill();
-        };
-        // Distant hazy hills, progressively closer / darker.
-        bump(h * 0.56, 26, 16, '#c3d8cc');
-        bump(h * 0.62, 22, 12, '#aecdb6');
-        bump(h * 0.69, 18, 10, '#98bd9f');
-        bump(h * 0.755, 14, 8, '#84ab8a');
-        // Faint tree line along the bottom edge (hidden behind the 3D fence).
-        g.fillStyle = '#6f9a6a';
-        for (let x = 0; x < w; x += 14) {
-          const r = 8 + 10 * Math.abs(Math.sin(x * 0.21));
-          g.beginPath();
-          g.arc(x, h * 0.90, r, Math.PI, 0);
-          g.fill();
-        }
-        // Bottom gradient towards local grass colour, so the seam is invisible.
-        const hem = g.createLinearGradient(0, h * 0.84, 0, h);
-        hem.addColorStop(0, 'rgba(108,150,94,0)');
-        hem.addColorStop(1, 'rgba(88,132,70,0.95)');
-        g.fillStyle = hem;
-        g.fillRect(0, h * 0.84, w, h * 0.16);
-      });
-    }
-
-    function makePlankTexture() {
+    function makeGlowTexture() {
       return canvasTexture(128, 128, (g, w, h) => {
-        g.fillStyle = '#6f4e35'; g.fillRect(0, 0, w, h);
-        const rng = makeRng(99);
-        for (let i = 0; i < 260; i++) {
-          const y = rng() * h, x = rng() * w, len = 8 + rng() * 40;
-          g.strokeStyle = `rgba(${60 + rng() * 40 | 0},${40 + rng() * 26 | 0},${24 + rng() * 20 | 0},0.35)`;
-          g.lineWidth = 1;
-          g.beginPath(); g.moveTo(x, y); g.lineTo(x + len, y + (rng() - 0.5) * 2); g.stroke();
-        }
-        g.fillStyle = '#563b28';
-        g.fillRect(0, h - 6, w, 6);
-        g.fillStyle = 'rgba(255,235,205,0.10)';
-        g.fillRect(0, 0, w, 2);
-      });
-    }
-
-    function makeSidewalkTexture() {
-      return canvasTexture(128, 128, (g, w, h) => {
-        g.fillStyle = '#b8b2a4'; g.fillRect(0, 0, w, h);
-        const rng = makeRng(7);
-        for (let i = 0; i < 220; i++) {
-          g.fillStyle = `rgba(90,88,80,${0.05 + rng() * 0.08})`;
-          g.fillRect(rng() * w, rng() * h, 1.5, 1.5);
-        }
-        g.strokeStyle = '#9a9488'; g.lineWidth = 3;
-        g.beginPath(); g.moveTo(0, 2); g.lineTo(w, 2); g.stroke();
-        g.beginPath(); g.moveTo(2, 0); g.lineTo(2, h); g.stroke();
-      });
-    }
-
-    function makeGrassNoiseTexture() {
-      return canvasTexture(128, 128, (g, w, h) => {
-        g.fillStyle = '#ffffff'; g.fillRect(0, 0, w, h);
-        const rng = makeRng(31);
-        for (let i = 0; i < 700; i++) {
-          const v = 228 + rng() * 27 | 0;
-          g.fillStyle = `rgb(${v},${v},${v})`;
-          g.fillRect(rng() * w, rng() * h, 1, 2);
-        }
+        const grad = g.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
+        grad.addColorStop(0, 'rgba(255,246,180,0.85)');
+        grad.addColorStop(0.32, 'rgba(255,228,112,0.42)');
+        grad.addColorStop(0.65, 'rgba(255,208,80,0.14)');
+        grad.addColorStop(1, 'rgba(255,200,60,0)');
+        g.fillStyle = grad; g.fillRect(0, 0, w, h);
       });
     }
 
@@ -1071,11 +992,8 @@
     let TEX = {};
     function buildSharedTextures() {
       TEX.sky = makeSkyTexture();
-      TEX.backdrop = makeBackdropTexture();
-      TEX.plank = makePlankTexture();
-      TEX.sidewalk = makeSidewalkTexture();
-      TEX.grassNoise = makeGrassNoiseTexture();
       TEX.shadow = makeRadialTexture(0.55);
+      TEX.glow = makeGlowTexture();
       TEX.particle = canvasTexture(64, 64, (g, w, h) => {
         const grad = g.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
         grad.addColorStop(0, 'rgba(255,255,255,1)');
@@ -1087,6 +1005,19 @@
 
     // ---- Renderer / camera / lights / environment ----
     function initRenderer() {
+      // Fail with a clear message when WebGL2 is unavailable (don't leave a dead page).
+      let probe = null;
+      try {
+        probe = document.createElement('canvas').getContext('webgl2');
+      } catch (e) { probe = null; }
+      if (!probe) {
+        throw new Error('WebGL2 is not available in this browser. The 3D view needs WebGL2.');
+      }
+      try {
+        const lose = probe.getExtension('WEBGL_lose_context');
+        if (lose) lose.loseContext();
+      } catch (e) { /* ignore */ }
+
       renderer = new THREE.WebGLRenderer({
         canvas,
         antialias: true,
@@ -1117,324 +1048,550 @@
       camera.updateMatrixWorld();
       updateCameraBasis();
 
-      // Lights — warm directional "sun" from upper-left-front + cool sky fill.
-      const hemi = new THREE.HemisphereLight(0xcfe4ff, 0x5a6b3a, 1.25);
+      // Lights — warm directional sun from upper-left-front + bright sky fill.
+      // Kept ambient-heavy so cast shadows stay soft/warm like the Godot reference.
+      const hemi = new THREE.HemisphereLight(0xdcecf8, 0xa08a58, 3.0);
       scene.add(hemi);
-      const sunLight = new THREE.DirectionalLight(0xfff3d6, 2.5);
-      sunLight.position.set(-15, 30, 21);
+      const sunLight = new THREE.DirectionalLight(0xfff1d2, 4.0);
+      sunLight.position.set(-15, 32, 22);
       sunLight.target.position.set(1, 0, -1);
       sunLight.castShadow = true;
       sunLight.shadow.mapSize.set(2048, 2048);
       const sc = sunLight.shadow.camera;
       sc.left = -26; sc.right = 26; sc.top = 22; sc.bottom = -22; sc.near = 1; sc.far = 90;
       sc.updateProjectionMatrix();
-      sunLight.shadow.bias = -0.0004;
-      sunLight.shadow.normalBias = 0.025;
+      sunLight.shadow.bias = -0.0005;
+      sunLight.shadow.normalBias = 0.045;
       scene.add(sunLight);
       scene.add(sunLight.target);
 
-      const bounce = new THREE.DirectionalLight(0xffe6b0, 0.45);
-      bounce.position.set(14, 8, 12);
+      const bounce = new THREE.DirectionalLight(0xffe4b0, 1.0);
+      bounce.position.set(16, 10, 14);
       scene.add(bounce);
 
       buildEnvironment();
       buildInteractionVisuals();
     }
 
-    const MAT = {};
-    function buildMaterials() {
-      MAT.baseGround = new THREE.MeshLambertMaterial({ color: 0x3f5c2c });
-      MAT.grassPlatform = new THREE.MeshLambertMaterial({ color: 0x4d8039, map: TEX.grassNoise });
-      MAT.lawnUnder = new THREE.MeshLambertMaterial({ color: 0x2f6b2c });
-      MAT.lawnLight = new THREE.MeshLambertMaterial({ color: 0x56a34a });
-      MAT.lawnDark = new THREE.MeshLambertMaterial({ color: 0x4b9441 });
-      MAT.wood = new THREE.MeshLambertMaterial({ color: 0x6b4a2e });
-      MAT.woodLight = new THREE.MeshLambertMaterial({ color: 0x7d5a38 });
-      MAT.fence = new THREE.MeshLambertMaterial({ color: 0x7a5a3a });
-      MAT.patio = new THREE.MeshLambertMaterial({ color: 0x6f4e35 });
-      MAT.sidewalk = new THREE.MeshLambertMaterial({ color: 0xb8b2a4 });
-      MAT.houseWall = new THREE.MeshLambertMaterial({ color: 0xd8c39c });
-      MAT.houseRoof = new THREE.MeshLambertMaterial({ color: 0x8e4a3a });
-      MAT.houseTrim = new THREE.MeshLambertMaterial({ color: 0xefe2c4 });
-      MAT.houseDoor = new THREE.MeshLambertMaterial({ color: 0x5a3a26 });
-      MAT.window = new THREE.MeshStandardMaterial({ color: 0x9fd4e8, emissive: 0x24404d, emissiveIntensity: 0.6, roughness: 0.3, metalness: 0.1 });
-      MAT.trunk = new THREE.MeshLambertMaterial({ color: 0x6b4a2e });
-      MAT.leafA = makeFlatMat(0x3d7a33);
-      MAT.leafB = makeFlatMat(0x478a3a);
-      MAT.leafC = makeFlatMat(0x2f6b2c);
-      MAT.stone = new THREE.MeshLambertMaterial({ color: 0x9a9488 });
-      MAT.stoneLight = new THREE.MeshLambertMaterial({ color: 0xb0aa9c });
-      MAT.backdrop = new THREE.MeshBasicMaterial({ map: TEX.backdrop, fog: false, toneMapped: false });
-    }
 
-    function makeFlatMat(color) {
-      return new THREE.MeshLambertMaterial({ color, flatShading: true });
+    // =====================================================================
+    // Environment — mirrors the validated Godot BoardBuilder composition
+    // (scripts/core/board_builder.gd): same palette, layout and props so the
+    // web and Godot dioramas read as the same world.
+    // All dimensions below are GAME PIXELS (converted to world units via PX).
+    // Convention: every walkable top is y = 0; base ground top = -2 px.
+    // =====================================================================
+    const PAL = {
+      SOIL: 0x46603a, SOIL_DARK: 0x3a5030, GRASS_A: 0x5db050, GRASS_B: 0x42853a,
+      SEAM: 0x2f6b2c, WOOD: 0x6b4a2e, WOOD_LIGHT: 0x7d5836, WOOD_DARK: 0x513522,
+      PATIO: 0x6f4e35, PATIO_ALT: 0x7a583c, PATIO_SEAM: 0x4c3423,
+      WALL: 0xcba87a, WALL_SHADE: 0xb08d61, ROOF: 0x7c3b2c, ROOF_DARK: 0x683027,
+      DOOR: 0x5a3a26, WINDOW: 0x9fd4e8, WINDOW_FRAME: 0xe8dfc8, TRIM: 0xe6dcc4,
+      SIDEWALK: 0x8c8778, SIDEWALK_JOINT: 0x736e60, CURB: 0x847f70,
+      STREET: 0x4f5359, STREET_LINE: 0xc9c4b4,
+      HEDGE: 0x3f7a35, HEDGE_LIGHT: 0x4c8c3e, HEDGE_DARK: 0x356b2d,
+      TRUNK: 0x6b4a2e, LEAF_A: 0x4e8a3f, LEAF_B: 0x5fa04a, LEAF_C: 0x427a36,
+      SHUTTER: 0x4f6b3c, FENCE_POST: 0x5d4028,
+      STONE: 0x827d6f, STONE_LIGHT: 0x989182, FRONT_GRASS: 0x4f8f44,
+      FLOWER_RED: 0xe4574a, FLOWER_YELLOW: 0xf2c94c, FLOWER_PINK: 0xe88bc4, FLOWER_WHITE: 0xf5f0e2,
+      MAILBOX: 0xb8452f, HYDRANT: 0xc8452f, HYDRANT_TOP: 0xb03d29, HYDRANT_CAP: 0xd4d0c4,
+      CHIMNEY: 0xa26a58, CHIMNEY_CAP: 0x8a5647, PORCH_LIGHT: 0xffe27a,
+      POT: 0xb5623e, EAVE_SHADOW: 0x8f6f4a, DOOR_KNOB: 0xe8c76a, LAWN_STRIPE: 0x549747
+    };
+
+    const MAT_CACHE = new Map();
+    function envMat(hex) {
+      const key = 'm' + hex;
+      let m = MAT_CACHE.get(key);
+      if (!m) {
+        m = new THREE.MeshLambertMaterial({ color: hex });
+        MAT_CACHE.set(key, m);
+      }
+      return m;
+    }
+    function envMatUnshaded(hex) {
+      const key = 'u' + hex;
+      let m = MAT_CACHE.get(key);
+      if (!m) {
+        m = new THREE.MeshBasicMaterial({ color: hex, toneMapped: false });
+        MAT_CACHE.set(key, m);
+      }
+      return m;
     }
 
     const UNIT_BOX = new THREE.BoxGeometry(1, 1, 1);
-    const UNIT_CYL = new THREE.CylinderGeometry(1, 1, 1, 7);
-    const UNIT_ICO = (() => {
-      const g = new THREE.IcosahedronGeometry(1, 0).toNonIndexed();
-      g.computeVertexNormals();
-      return g;
-    })();
-    const UNIT_CONE = (() => {
-      const g = new THREE.ConeGeometry(1, 1, 8).toNonIndexed();
-      g.computeVertexNormals();
-      return g;
-    })();
+    const SPHERE_GEO = new THREE.SphereGeometry(1, 10, 7);
+    const CONE4_GEO = new THREE.ConeGeometry(1, 1, 4);
 
-    function addBox(w, h, d, x, y, z, mat, castShadow, receiveShadow) {
-      const mesh = new THREE.Mesh(UNIT_BOX, mat);
-      mesh.scale.set(w, h, d);
-      mesh.position.set(x, y, z);
+    // --- primitive helpers (game-pixel space, converted with PX) -------------
+    function envSlab(x0, y0, x1, y1, topPx, bottomPx, color, castShadow) {
+      const mesh = new THREE.Mesh(UNIT_BOX, envMat(color));
+      mesh.scale.set((x1 - x0) * PX, (topPx - bottomPx) * PX, (y1 - y0) * PX);
+      mesh.position.set(wx((x0 + x1) / 2), ((topPx + bottomPx) / 2) * PX, wz((y0 + y1) / 2));
       mesh.castShadow = !!castShadow;
-      mesh.receiveShadow = receiveShadow !== false;
-      scene.add(mesh);
-      return mesh;
-    }
-
-    function addGroundPlane(w, d, x, y, z, mat) {
-      const geo = new THREE.PlaneGeometry(w, d);
-      geo.rotateX(-Math.PI / 2);
-      const mesh = new THREE.Mesh(geo, mat);
-      mesh.position.set(x, y, z);
       mesh.receiveShadow = true;
       scene.add(mesh);
       return mesh;
     }
 
+    function envBox(cx, cy, cz, sx, sy, sz, color, castShadow) {
+      const mesh = new THREE.Mesh(UNIT_BOX, envMat(color));
+      mesh.scale.set(sx * PX, sy * PX, sz * PX);
+      mesh.position.set(wx(cx), cy * PX, wz(cz));
+      mesh.castShadow = !!castShadow;
+      mesh.receiveShadow = true;
+      scene.add(mesh);
+      return mesh;
+    }
+
+    function envSphere(cx, cy, cz, radiusPx, color, squash, castShadow) {
+      const mesh = new THREE.Mesh(SPHERE_GEO, envMat(color));
+      const sq = squash || [1, 1, 1];
+      mesh.scale.set(radiusPx * PX * sq[0], radiusPx * PX * sq[1], radiusPx * PX * sq[2]);
+      mesh.position.set(wx(cx), cy * PX, wz(cz));
+      mesh.castShadow = !!castShadow;
+      mesh.receiveShadow = true;
+      scene.add(mesh);
+      return mesh;
+    }
+
+    function envCylinder(cx, cy, cz, topR, bottomR, hPx, color, castShadow, seg) {
+      const geo = new THREE.CylinderGeometry(topR * PX, bottomR * PX, hPx * PX, seg || 8);
+      const mesh = new THREE.Mesh(geo, envMat(color));
+      mesh.position.set(wx(cx), cy * PX, wz(cz));
+      mesh.castShadow = !!castShadow;
+      mesh.receiveShadow = true;
+      scene.add(mesh);
+      return mesh;
+    }
+
+    function envCone(cx, cy, cz, bottomR, hPx, color, castShadow, seg) {
+      const geo = new THREE.ConeGeometry(bottomR * PX, hPx * PX, seg || 9);
+      const mesh = new THREE.Mesh(geo, envMat(color));
+      mesh.position.set(wx(cx), cy * PX, wz(cz));
+      mesh.castShadow = !!castShadow;
+      mesh.receiveShadow = true;
+      scene.add(mesh);
+      return mesh;
+    }
+
+    function envContactShadow(cx, cz, wPx, dPx, alpha, groundYPx) {
+      const mesh = new THREE.Mesh(SHADOW_GEO, new THREE.MeshBasicMaterial({
+        map: TEX.shadow, transparent: true,
+        opacity: alpha === undefined ? 0.55 : alpha,
+        depthWrite: false, color: 0x14230d, toneMapped: false
+      }));
+      mesh.scale.set(wPx * PX, 1, dPx * PX);
+      mesh.position.set(wx(cx), (groundYPx === undefined ? 0.4 : groundYPx) * PX + 0.004, wz(cz));
+      mesh.renderOrder = RENDER_SHADOW;
+      scene.add(mesh);
+      return mesh;
+    }
+
+    // =====================================================================
     function buildEnvironment() {
-      buildMaterials();
+      buildGround();
+      buildLawn();
+      buildPatio();
+      buildHouse();
+      buildRightSide();
+      buildBackyard();
+      buildTrees();
+      buildForeground();
+    }
 
-      // ---- 1. Base ground: far edge ends at game y ≈ -60 so open sky shows above it ----
-      const groundDepth = GROUND_NEAR_Z - GROUND_FAR_Z;
-      addGroundPlane(300, groundDepth, 0, BASE_Y, (GROUND_FAR_Z + GROUND_NEAR_Z) / 2, MAT.baseGround);
+    // --- base ground --------------------------------------------------------
+    const BASE_GROUND = { X0: -700, X1: 2300, BACK_Y: -60, FRONT_Y: 900 };
+    const LAWN = { X0: GRID_X, Y0: GRID_Y, X1: GRID_X + COLS * CELL_W, Y1: GRID_Y + ROWS * CELL_H };
 
-      // ---- 2. Board platform: patio | grass | sidewalk (tops at PLATFORM_TOP) ----
-      // Extends past the 2D board bottom as a foreground apron so the bottom of the
-      // frame never shows the scene background.
-      const platformH = PLATFORM_TOP - BASE_Y;
-      const platformMidY = (BASE_Y + PLATFORM_TOP) / 2;
-      const platformD = PLATFORM_Z1 - BOARD_Z0;
-      const platformZ = (BOARD_Z0 + PLATFORM_Z1) / 2;
-      const patioW = PATIO_X1 - BOARD_X0;
-      addBox(patioW, platformH, platformD, (BOARD_X0 + PATIO_X1) / 2, platformMidY, platformZ, MAT.patio, false, true);
-      const grassW = SIDEWALK_X0 - PATIO_X1;
-      addBox(grassW, platformH, platformD, (PATIO_X1 + SIDEWALK_X0) / 2, platformMidY, platformZ, MAT.grassPlatform, false, true);
-      const walkW = BOARD_X1 - SIDEWALK_X0;
-      addBox(walkW, platformH, platformD, (SIDEWALK_X0 + BOARD_X1) / 2, platformMidY, platformZ, MAT.sidewalk, false, true);
-
-      // patio plank overlay
-      {
-        const tex = TEX.plank.clone();
-        tex.needsUpdate = true;
-        tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-        tex.repeat.set(1, 13);
-        const mesh = addGroundPlane(patioW, platformD, (BOARD_X0 + PATIO_X1) / 2, PLATFORM_TOP + 0.002, platformZ,
-          new THREE.MeshLambertMaterial({ map: tex, color: 0xffffff }));
-        mesh.receiveShadow = true;
+    function buildGround() {
+      const g = BASE_GROUND;
+      envSlab(g.X0, g.BACK_Y, g.X1, g.FRONT_Y, -2.0, -80.0, PAL.SOIL, false);
+      // darker strip between the backyard and the lawn platform
+      envSlab(LAWN.X0 - 46, g.BACK_Y + 2, LAWN.X1 + 46, LAWN.Y0 - 2, -1.7, -14.0, PAL.SOIL_DARK, false);
+      const rng = makeRng(20240321);
+      for (let i = 0; i < 8; i++) {
+        const x = LAWN.X0 - 40 + rng() * (LAWN.X1 - LAWN.X0 + 70);
+        const z = g.BACK_Y + 6 + rng() * (LAWN.Y0 - g.BACK_Y - 20);
+        const w = 38 + rng() * 82;
+        const d = 6 + rng() * 7;
+        envSlab(x, z, x + w, z + d, -1.6, -2.0, PAL.SEAM, false);
       }
-      // sidewalk paver overlay
-      {
-        const tex = TEX.sidewalk.clone();
-        tex.needsUpdate = true;
-        tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-        tex.repeat.set(2, 15);
-        addGroundPlane(walkW, platformD, (SIDEWALK_X0 + BOARD_X1) / 2, PLATFORM_TOP + 0.002, platformZ,
-          new THREE.MeshLambertMaterial({ map: tex, color: 0xffffff }));
+      for (let i = 0; i < 10; i++) {
+        const x = g.X0 + 60 + rng() * (LAWN.X0 - g.X0 - 140);
+        const z = g.BACK_Y + 40 + rng() * 720;
+        const w = 24 + rng() * 36;
+        const d = 8 + rng() * 14;
+        envSlab(x, z, x + w, z + d, -1.6, -2.0, PAL.SOIL, false);
       }
+    }
 
-      // ---- 3. Lawn underlay + raised checker tiles (tile tops exactly Y=0) ----
-      const lawnW = LAWN_X1 - LAWN_X0;
-      const lawnD = LAWN_Z1 - LAWN_Z0;
-      addBox(lawnW, BASE_Y * -1 - 0.05, lawnD, (LAWN_X0 + LAWN_X1) / 2, (BASE_Y + (GAME_GROUND - 0.05)) / 2, (LAWN_Z0 + LAWN_Z1) / 2, MAT.lawnUnder, false, true);
-
-      const cellGeo = new THREE.BoxGeometry(1, 1, 1);
-      const gap = 0.022;
-      const cellH = 0.05;
-      for (let r = 0; r < ROWS; r++) {
-        for (let c = 0; c < COLS; c++) {
-          const isEven = (r + c) % 2 === 0;
-          const mesh = new THREE.Mesh(cellGeo, isEven ? MAT.lawnLight : MAT.lawnDark);
-          mesh.scale.set(CELL_W * PX - gap, cellH, CELL_H * PX - gap);
-          mesh.position.set(
-            wx(GRID_X + c * CELL_W + CELL_W / 2),
-            GAME_GROUND - cellH / 2,
-            wz(GRID_Y + r * CELL_H + CELL_H / 2)
-          );
-          mesh.receiveShadow = true;
-          scene.add(mesh);
+    // --- lawn: raised checker tiles + wooden border --------------------------
+    function buildLawn() {
+      const lawnW = LAWN.X1 - LAWN.X0;
+      const lawnH = LAWN.Y1 - LAWN.Y0;
+      // dark platform visible in the recessed seams between tiles
+      envSlab(LAWN.X0 - 8, LAWN.Y0 - 8, LAWN.X1 + 8, LAWN.Y1 + 8, -1.0, -18.0, PAL.SEAM, false);
+      const inset = 2.0;
+      for (let row = 0; row < ROWS; row++) {
+        for (let col = 0; col < COLS; col++) {
+          const x = LAWN.X0 + col * CELL_W + inset;
+          const y = LAWN.Y0 + row * CELL_H + inset;
+          const color = (row + col) % 2 === 0 ? PAL.GRASS_A : PAL.GRASS_B;
+          envSlab(x, y, x + CELL_W - inset * 2, y + CELL_H - inset * 2, 0.0, -1.0, color, false);
         }
       }
-
-      // ---- 4. Wooden border frame around the lawn ----
-      const borderW = 0.24;
-      const borderTop = 0.215;
-      const borderH = borderTop - BASE_Y;
-      const borderY = (BASE_Y + borderTop) / 2;
-      addBox(borderW, borderH, lawnD + borderW * 2, LAWN_X0 - borderW / 2, borderY, (LAWN_Z0 + LAWN_Z1) / 2, MAT.wood, true, true);
-      addBox(borderW, borderH, lawnD + borderW * 2, LAWN_X1 + borderW / 2, borderY, (LAWN_Z0 + LAWN_Z1) / 2, MAT.wood, true, true);
-      addBox(lawnW, borderH, borderW, (LAWN_X0 + LAWN_X1) / 2, borderY, LAWN_Z0 - borderW / 2, MAT.wood, true, true);
-      addBox(lawnW, borderH, borderW, (LAWN_X0 + LAWN_X1) / 2, borderY, LAWN_Z1 + borderW / 2, MAT.wood, true, true);
-      // lighter top rims
-      addBox(borderW, 0.035, lawnD + borderW * 2, LAWN_X0 - borderW / 2, borderTop + 0.017, (LAWN_Z0 + LAWN_Z1) / 2, MAT.woodLight, true, true);
-      addBox(borderW, 0.035, lawnD + borderW * 2, LAWN_X1 + borderW / 2, borderTop + 0.017, (LAWN_Z0 + LAWN_Z1) / 2, MAT.woodLight, true, true);
-      addBox(lawnW, 0.035, borderW, (LAWN_X0 + LAWN_X1) / 2, borderTop + 0.017, LAWN_Z0 - borderW / 2, MAT.woodLight, true, true);
-      addBox(lawnW, 0.035, borderW, (LAWN_X0 + LAWN_X1) / 2, borderTop + 0.017, LAWN_Z1 + borderW / 2, MAT.woodLight, true, true);
-
-      // ---- 5. Foreground apron lip (front edge of the diorama) ----
-      addBox(BOARD_X1 - BOARD_X0 + 0.5, 0.30, 0.26, 0, BASE_Y + 0.15, 9.5, MAT.wood, true, true);
-      addBox(BOARD_X1 - BOARD_X0 + 0.5, 0.05, 0.30, 0, BASE_Y + 0.32, 9.5, MAT.woodLight, true, false);
-      addBox(0.26, 0.30, platformD, BOARD_X0 - 0.13, BASE_Y + 0.15, platformZ, MAT.wood, false, true);
-      addBox(0.26, 0.30, platformD, BOARD_X1 + 0.13, BASE_Y + 0.15, platformZ, MAT.wood, false, true);
-
-      buildHouse();
-      buildBackdrop();
-      buildFence();
-      buildTrees();
-      buildRightSide();
+      const bw = 13.0, borderTop = 10.0, borderBottom = -24.0;
+      const ox = LAWN.X0 - 22, oy = LAWN.Y0 - 22;
+      const ow = lawnW + 44, oh = lawnH + 44;
+      envSlab(ox, oy, ox + ow, oy + bw, borderTop, borderBottom, PAL.WOOD_LIGHT, true);                 // back
+      envSlab(ox, oy + oh - bw, ox + ow, oy + oh, borderTop, borderBottom, PAL.WOOD_LIGHT, true);       // front
+      envSlab(ox, oy + bw, ox + bw, oy + oh - bw, borderTop, borderBottom, PAL.WOOD, true);             // left
+      envSlab(ox + ow - bw, oy + bw, ox + ow, oy + oh - bw, borderTop, borderBottom, PAL.WOOD, true);   // right
+      envSlab(ox, oy - 1.0, ox + ow, oy + 2.0, borderTop + 0.6, borderTop, PAL.WOOD_LIGHT, false);     // back rim
+      envSlab(ox - 1.0, oy + bw, ox + 2.0, oy + oh - bw, borderTop + 0.6, borderTop, PAL.WOOD_LIGHT, false); // left rim
+      // soft AO from the raised frame onto the lawn (near/right edges)
+      envContactShadow(LAWN.X1 - 26, (LAWN.Y0 + LAWN.Y1) * 0.5, 90, lawnH - 10, 0.16, 0.6);
+      envContactShadow((LAWN.X0 + LAWN.X1) * 0.5, LAWN.Y1 - 26, lawnW - 10, 80, 0.15, 0.6);
     }
 
+    // --- patio --------------------------------------------------------------
+    function buildPatio() {
+      const g = BASE_GROUND;
+      envSlab(-360, g.BACK_Y, 257, g.FRONT_Y, -1.4, -24.0, PAL.PATIO_SEAM, false);
+      let z = g.BACK_Y + 2;
+      let idx = 0;
+      while (z < g.FRONT_Y) {
+        const depth = Math.min(46, g.FRONT_Y - z);
+        const color = idx % 2 === 0 ? PAL.PATIO : PAL.PATIO_ALT;
+        envSlab(-360, z, 257, z + depth, 0.0, -1.4, color, false);
+        z += depth + 3;
+        idx++;
+      }
+      envSlab(250, g.BACK_Y, 257, g.FRONT_Y, 1.5, -24.0, PAL.WOOD_DARK, false);
+      buildPot(150, 300, 1.0);
+      buildPot(196, 470, 0.85);
+    }
+
+    function buildPot(x, z, s) {
+      envCylinder(x, 17 * s, z, 15 * s, 11 * s, 34 * s, PAL.POT, true, 10);
+      envSphere(x, 48 * s, z, 20 * s, PAL.HEDGE_LIGHT, [1.0, 0.85, 1.0], true);
+      envSphere(x + 10 * s, 58 * s, z + 6 * s, 5.5 * s, PAL.FLOWER_YELLOW, [1, 1, 1], false);
+      envSphere(x - 8 * s, 62 * s, z - 5 * s, 5.0 * s, PAL.FLOWER_RED, [1, 1, 1], false);
+    }
+
+    // --- house facade (left) -------------------------------------------------
     function buildHouse() {
-      // House facade to the left of the patio (outside the 2D board). Tall enough
-      // to fill the upper-left of the frame like a real front-yard view.
-      const wallX0 = -20.9, wallX1 = -14.55;
-      const wallZ0 = -8.8, wallZ1 = 7.2;
-      const wallTop = 7.9;
-      addBox(wallX1 - wallX0, wallTop - BASE_Y, wallZ1 - wallZ0,
-        (wallX0 + wallX1) / 2, (BASE_Y + wallTop) / 2, (wallZ0 + wallZ1) / 2, MAT.houseWall, true, true);
-      // roof: triangular prism extruded along Z
-      const shape = new THREE.Shape();
-      shape.moveTo(wallX0 - 0.55, wallTop - 0.18);
-      shape.lineTo(wallX1 + 0.55, wallTop - 0.18);
-      shape.lineTo((wallX0 + wallX1) / 2, wallTop + 1.55);
-      shape.closePath();
-      const roofGeo = new THREE.ExtrudeGeometry(shape, { depth: wallZ1 - wallZ0 + 1.0, bevelEnabled: false });
-      const roof = new THREE.Mesh(roofGeo, MAT.houseRoof);
-      roof.position.set(0, 0, wallZ0 - 0.5);
-      roof.castShadow = true; roof.receiveShadow = true;
-      scene.add(roof);
-      // fascia board under the eaves
-      addBox(wallX1 - wallX0 + 1.2, 0.22, 0.16, (wallX0 + wallX1) / 2, wallTop - 0.06, wallZ1 + 0.5, MAT.houseTrim, true, true);
-      // chimney
-      addBox(0.85, 1.7, 0.85, -19.3, wallTop + 1.15, -7.4, MAT.houseRoof, true, true);
-      addBox(1.0, 0.16, 1.0, -19.3, wallTop + 2.02, -7.4, MAT.houseTrim, true, false);
-
-      const frontX = wallX1 + 0.01;
-      // door
-      addBox(0.16, 2.75, 1.55, frontX, BASE_Y + 1.375, 4.1, MAT.houseDoor, true, true);
-      addBox(0.1, 2.95, 1.85, frontX - 0.05, BASE_Y + 1.475, 4.1, MAT.houseTrim, true, true);
-      addBox(1.9, 0.18, 1.0, wallX1 + 0.55, BASE_Y + 0.09, 4.1, MAT.stone, true, true);
-      // windows with cross frames
-      const windows = [
-        { y: 4.55, z: 1.2 },
-        { y: 4.55, z: -2.2 },
-        { y: 6.35, z: -0.6 }
-      ];
-      windows.forEach(w => {
-        addBox(0.16, 1.55, 1.7, frontX, w.y, w.z, MAT.houseTrim, true, true);
-        addBox(0.1, 1.3, 1.45, frontX + 0.06, w.y, w.z, MAT.window, false, false);
-        addBox(0.08, 1.3, 0.08, frontX + 0.13, w.y, w.z, MAT.houseTrim, false, false);
-        addBox(0.08, 0.08, 1.45, frontX + 0.13, w.y, w.z, MAT.houseTrim, false, false);
-      });
-      // small porch light
-      addBox(0.28, 0.28, 0.28, wallX1 + 0.18, 3.75, 5.35, MAT.houseTrim, false, false);
-    }
-
-    function buildBackdrop() {
-      // Large camera-facing matte painting of sky + distant hills. Positioned just
-      // behind the far board edge so it covers the top of the frame (the fixed
-      // camera never actually sees the real sky, see spec/lead findings).
-      const zPos = -9.36;
-      const h = 1.55;
-      const geo = new THREE.PlaneGeometry(90, h);
-      const mesh = new THREE.Mesh(geo, MAT.backdrop);
-      mesh.position.set(0, BASE_Y + h / 2, zPos);
-      mesh.receiveShadow = false;
-      scene.add(mesh);
-    }
-
-    function buildFence() {
-      const zFence = -7.15;
-      const y0 = PLATFORM_TOP;
-      const postH = 1.5;
-      const x0 = BOARD_X0 + 0.4, x1 = BOARD_X1 - 0.4;
-      for (let x = x0; x <= x1; x += 1.65) {
-        addBox(0.11, postH, 0.11, x, y0 + postH / 2, zFence, MAT.fence, true, true);
+      const wallX = 72, wallLeft = -520, z0 = BASE_GROUND.BACK_Y, z1 = BASE_GROUND.FRONT_Y + 140;
+      const wallH = 310;
+      const midZ = (z0 + z1) * 0.5;
+      envBox((wallLeft + wallX) * 0.5, wallH * 0.5, midZ,
+        wallX - wallLeft, wallH, z1 - z0, PAL.WALL, false);
+      // foundation / wainscot
+      envSlab(wallLeft, z0, wallX, z1, 30.0, -2.0, PAL.WALL_SHADE, false);
+      // subtle vertical shading panels
+      for (let i = 0; i < 6; i++) {
+        const z = z0 + 60 + i * 170;
+        envSlab(wallX - 1.0, z, wallX + 0.2, z + 110, wallH - 20, 34, PAL.WALL_SHADE, false);
       }
-      addBox(x1 - x0, 0.11, 0.06, (x0 + x1) / 2, y0 + 0.52, zFence + 0.03, MAT.fence, true, true);
-      addBox(x1 - x0, 0.11, 0.06, (x0 + x1) / 2, y0 + 1.08, zFence + 0.03, MAT.fence, true, true);
-      addBox(x1 - x0, 0.09, 0.09, (x0 + x1) / 2, y0 + postH + 0.02, zFence, MAT.woodLight, true, true);
-
-      // low bushes in front of the fence (soften its base line)
-      const rng = makeRng(4242);
-      for (let x = x0 + 0.6; x <= x1 - 0.4; x += 2.1) {
-        const s = 0.32 + rng() * 0.22;
-        const bush = new THREE.Mesh(UNIT_ICO, rng() > 0.5 ? MAT.leafB : MAT.leafA);
-        bush.scale.set(s * 1.25, s * 0.85, s);
-        bush.position.set(x + (rng() - 0.5) * 0.8, y0 + s * 0.7, -6.62);
-        bush.rotation.y = rng() * Math.PI;
-        bush.castShadow = true; bush.receiveShadow = true;
-        scene.add(bush);
+      // horizontal siding grooves
+      let sidingY = 26;
+      let sIdx = 0;
+      while (sidingY < wallH - 12) {
+        if (Math.abs(sidingY - 138) > 10) {
+          envBox(wallX + 0.4, sidingY, midZ, 1.4, 2.6, z1 - z0, PAL.WALL_SHADE, false);
+        }
+        sidingY += 30;
+        sIdx++;
       }
+      // cream trim band + corner boards
+      envBox(wallX + 0.9, 138, midZ, 3.6, 13, z1 - z0, PAL.TRIM, false);
+      for (let i = 0; i < 6; i++) {
+        const tz = z0 + 40 + i * 172;
+        envBox(wallX + 0.9, wallH * 0.5, tz, 3.0, wallH, 9.0, PAL.TRIM, false);
+      }
+      // windows (frame + glass + bars + shutters + flower boxes)
+      const windowZs = [150, 390, 640, 860];
+      for (let i = 0; i < windowZs.length; i++) {
+        const z = windowZs[i];
+        const winH = 96, winW = 74, cy = 180;
+        envBox(wallX + 2.0, cy, z, 4.0, winH + 10, winW + 10, PAL.WINDOW_FRAME, false);
+        envBox(wallX + 4.2, cy, z, 2.0, winH, winW, PAL.WINDOW, false);
+        envBox(wallX + 4.0, cy - winH * 0.5 - 8.0, z, 7.0, 6.0, winW + 14, PAL.WINDOW_FRAME, false);
+        envBox(wallX + 5.4, cy, z, 1.2, winH, 4.0, PAL.WINDOW_FRAME, false);
+        envBox(wallX + 5.4, cy, z, 1.2, 4.0, winW, PAL.WINDOW_FRAME, false);
+        envBox(wallX + 3.4, cy, z - winW * 0.5 - 11.0, 2.8, winH + 8, 16.0, PAL.SHUTTER, false);
+        envBox(wallX + 3.4, cy, z + winW * 0.5 + 11.0, 2.8, winH + 8, 16.0, PAL.SHUTTER, false);
+        if (i === 1 || i === 2) {
+          envBox(wallX + 9.0, cy - winH * 0.5 - 20.0, z, 14.0, 16.0, winW + 16, PAL.WOOD, false);
+          for (let f = 0; f < 4; f++) {
+            const col = f % 2 === 0 ? PAL.FLOWER_RED : PAL.FLOWER_YELLOW;
+            envSphere(wallX + 13.0, cy - winH * 0.5 - 10.0, z - 30 + f * 20, 7.0, col, [1, 1, 1], false);
+          }
+        }
+      }
+      // door + step + porch light
+      const doorZ = 780;
+      envBox(wallX + 2.0, 82.0, doorZ, 5.0, 164.0, 96.0, PAL.WOOD_LIGHT, false);
+      envBox(wallX + 4.6, 78.0, doorZ, 2.4, 156.0, 84.0, PAL.DOOR, false);
+      envSphere(wallX + 6.6, 78.0, doorZ + 30.0, 3.6, PAL.DOOR_KNOB, [1, 1, 1], false);
+      envBox(wallX + 14.0, 5.0, doorZ, 28.0, 10.0, 120.0, PAL.STONE, false);
+      envBox(wallX + 6.0, 180.0, doorZ, 8.0, 16.0, 10.0, PAL.PORCH_LIGHT, false);
+      envContactShadow(wallX + 46, midZ, 150, 1500, 0.28, -0.2);
+
+      // eave overhang + gable roof (the warm roof plane visible on the left)
+      envBox(-60, wallH + 7, midZ, 320, 14, z1 - z0 + 6, PAL.WOOD_LIGHT, false);
+      envBox(wallX + 0.6, wallH - 9, midZ, 1.4, 18, z1 - z0, PAL.EAVE_SHADOW, false);
+      const ridgeY = wallH + 140;
+      const halfSpan = 205, rise = 140;
+      const panelLen = Math.sqrt(halfSpan * halfSpan + rise * rise);
+      const angle = Math.atan2(rise, halfSpan);
+      for (const side of [-1, 1]) {
+        let bandZ = z0 - 20;
+        let band = 0;
+        while (bandZ < z1 + 20) {
+          const depth = Math.min(78, z1 + 20 - bandZ);
+          const tone = ((band + (side > 0 ? 0 : 1)) % 2 === 0) ? PAL.ROOF : PAL.ROOF_DARK;
+          const panel = envBox(-60 + side * halfSpan * 0.5, (wallH + 7 + ridgeY) * 0.5,
+            bandZ + depth * 0.5, panelLen, 10, depth - 2, tone, false);
+          panel.rotation.z = -side * angle;
+          bandZ += depth;
+          band++;
+        }
+      }
+      envBox(-60, ridgeY, midZ, 16, 10, z1 - z0 + 50, PAL.ROOF_DARK, false);
+      envBox(-170, ridgeY + 60, 300, 52, 110, 52, PAL.CHIMNEY, false);
+      envBox(-170, ridgeY + 118, 300, 62, 10, 62, PAL.CHIMNEY_CAP, false);
     }
 
+    // --- right side: verge / sidewalk / curb / street ------------------------
+    function buildRightSide() {
+      const g = BASE_GROUND;
+      const sx0 = LAWN.X1 + 34;   // 1199
+      const sx1 = 1310;
+      envSlab(LAWN.X1 + 9, g.BACK_Y, sx0, g.FRONT_Y, -0.8, -16.0, PAL.FRONT_GRASS, false);
+      envSlab(sx0, g.BACK_Y, sx1, g.FRONT_Y, 0.0, -16.0, PAL.SIDEWALK, false);
+      let z = g.BACK_Y + 8;
+      while (z < g.FRONT_Y) {
+        envSlab(sx0 + 4, z, sx1 - 4, z + 2.4, 0.35, 0.0, PAL.SIDEWALK_JOINT, false);
+        z += 62;
+      }
+      envSlab(sx1, g.BACK_Y, sx1 + 15, g.FRONT_Y, 9.0, -22.0, PAL.CURB, true);
+      envSlab(sx1 - 1, g.BACK_Y, sx1 + 16, g.FRONT_Y, 9.6, 8.6, PAL.STONE_LIGHT, false);
+      envSlab(sx1 + 15, g.BACK_Y, 2260, g.FRONT_Y, -0.4, -24.0, PAL.STREET, false);
+      let lz = g.BACK_Y + 30;
+      while (lz < g.FRONT_Y) {
+        envSlab(1640, lz, 1648, lz + 52, 0.2, -0.4, PAL.STREET_LINE, false);
+        lz += 118;
+      }
+      buildMailbox(1226, 520);
+      buildHydrant(1250, 330);
+    }
+
+    function buildMailbox(x, z) {
+      envCylinder(x, 40, z, 4, 5, 80, PAL.WOOD, true, 6);
+      envBox(x, 88, z, 30, 20, 42, PAL.MAILBOX, true);
+      envBox(x + 19, 96, z, 3, 18, 3, PAL.FLOWER_YELLOW, false);
+      envBox(x + 15, 104, z, 12, 3, 3, PAL.FLOWER_YELLOW, false);
+    }
+
+    function buildHydrant(x, z) {
+      envCylinder(x, 18, z, 8, 9, 36, PAL.HYDRANT, true, 10);
+      envSphere(x, 38, z, 8, PAL.HYDRANT_TOP, [1, 1, 1], true);
+      envBox(x, 26, z, 20, 5, 5, PAL.HYDRANT_CAP, false);
+    }
+
+    // --- backyard: hedge + picket fence -------------------------------------
+    function buildBackyard() {
+      const fenceZ = 58, fx0 = 96, fx1 = 2260;
+      // solid trimmed hedge behind the fence (reads as one clean green band)
+      envSlab(fx0 - 50, 20, fx1 + 50, 54, 54.0, -2.0, PAL.HEDGE_DARK, true);
+      envSlab(fx0 - 50, 16, fx1 + 50, 58, 62.0, 52.0, PAL.HEDGE, true);
+      // bumpy hedge top
+      const bumpRng = makeRng(7712);
+      const bumpCount = 70;
+      const bumps = new THREE.InstancedMesh(SPHERE_GEO, new THREE.MeshLambertMaterial({ color: 0xffffff }), bumpCount);
+      {
+        const m4 = new THREE.Matrix4();
+        const q = new THREE.Quaternion();
+        const col = new THREE.Color();
+        for (let i = 0; i < bumpCount; i++) {
+          const hx = fx0 - 40 + i * 32;
+          const r = 15 + (bumpRng() * 5 - 2);
+          m4.compose(
+            new THREE.Vector3(wx(hx), 62 * PX, wz(34)),
+            q,
+            new THREE.Vector3(r * 1.3 * PX, r * 0.6 * PX, r * PX)
+          );
+          bumps.setMatrixAt(i, m4);
+          col.setHex(PAL.HEDGE_LIGHT);
+          bumps.setColorAt(i, col);
+        }
+        bumps.instanceMatrix.needsUpdate = true;
+        if (bumps.instanceColor) bumps.instanceColor.needsUpdate = true;
+        bumps.castShadow = true; bumps.receiveShadow = true;
+        scene.add(bumps);
+      }
+      // rails
+      envSlab(fx0, fenceZ - 2, fx1, fenceZ + 3, 30, 22, PAL.FENCE_POST, true);
+      envSlab(fx0, fenceZ - 2, fx1, fenceZ + 3, 62, 54, PAL.FENCE_POST, true);
+      // pickets + pointed caps (instanced)
+      const picketRng = makeRng(7712);
+      const picketCount = Math.ceil((fx1 - fx0) / 28);
+      const pickets = new THREE.InstancedMesh(UNIT_BOX, new THREE.MeshLambertMaterial({ color: 0xffffff }), picketCount);
+      const caps = new THREE.InstancedMesh(CONE4_GEO, new THREE.MeshLambertMaterial({ color: 0xffffff }), picketCount);
+      {
+        const m4 = new THREE.Matrix4();
+        const q = new THREE.Quaternion();
+        const col = new THREE.Color();
+        for (let i = 0; i < picketCount; i++) {
+          const x = fx0 + i * 28 + 8;
+          const h = 70 + (picketRng() * 5.5 - 2.5);
+          m4.compose(
+            new THREE.Vector3(wx(x), (h * 0.5) * PX, wz(fenceZ)),
+            q,
+            new THREE.Vector3(14 * PX, h * PX, 4 * PX)
+          );
+          pickets.setMatrixAt(i, m4);
+          m4.compose(
+            new THREE.Vector3(wx(x), (h + 3) * PX, wz(fenceZ)),
+            q,
+            new THREE.Vector3(9.5 * PX, 6 * PX, 9.5 * PX)
+          );
+          caps.setMatrixAt(i, m4);
+          col.setHex(i % 3 === 0 ? PAL.WOOD_LIGHT : PAL.WOOD);
+          pickets.setColorAt(i, col);
+          caps.setColorAt(i, col);
+        }
+        pickets.instanceMatrix.needsUpdate = true;
+        caps.instanceMatrix.needsUpdate = true;
+        if (pickets.instanceColor) pickets.instanceColor.needsUpdate = true;
+        if (caps.instanceColor) caps.instanceColor.needsUpdate = true;
+        pickets.castShadow = true; pickets.receiveShadow = true;
+        caps.castShadow = true; caps.receiveShadow = true;
+        scene.add(pickets); scene.add(caps);
+      }
+      // posts
+      for (let x = fx0; x <= fx1; x += 146) {
+        envBox(x, 46, fenceZ, 15, 92, 15, PAL.FENCE_POST, true);
+        envBox(x, 96, fenceZ, 19, 8, 19, PAL.FENCE_POST, true);
+      }
+      // grounding AO
+      envContactShadow(1180, 80, 2250, 110, 0.24, -0.4);
+      envContactShadow(1180, 34, 2250, 90, 0.20, -0.4);
+    }
+
+    // --- background trees ---------------------------------------------------
     function buildTrees() {
-      const rng = makeRng(2024);
-      const treeSpots = [
-        [-12.6, -8.55, 1.7], [-9.2, -8.8, 1.35], [-4.8, -8.6, 1.85], [-0.6, -8.9, 1.45],
-        [3.6, -8.65, 1.75], [7.8, -8.85, 1.4], [11.8, -8.6, 1.6],
-        [17.8, -4.2, 1.9], [-19.5, -8.7, 2.0]
+      const backSpecs = [
+        { x: 200, z: -24, h: 240, r: 74 },
+        { x: 540, z: -40, h: 300, r: 90 },
+        { x: 880, z: -16, h: 215, r: 66 },
+        { x: 1210, z: -34, h: 280, r: 84 },
+        { x: 1580, z: -20, h: 235, r: 72 },
+        { x: 1960, z: -30, h: 260, r: 78 }
       ];
-      treeSpots.forEach(([x, z, s]) => {
-        makeTree(x, z, s, rng);
-      });
+      for (const s of backSpecs) makeBackTree(s.x, s.z, s.h, s.r);
+      makeConifer(390, -34, 225);
+      makeConifer(1050, -26, 250);
+      // Soft hazy hills at the far edge of the base ground: the trees root into this
+      // band instead of floating against open sky.
+      const hillSpecs = [
+        { x: -430, z: -54, w: 560, h: 95, c: 0x82ab82 },
+        { x: 140, z: -58, w: 700, h: 115, c: 0x8db48d },
+        { x: 930, z: -52, w: 620, h: 92, c: 0x82ab82 },
+        { x: 1680, z: -56, w: 660, h: 105, c: 0x88b088 }
+      ];
+      for (const s of hillSpecs) {
+        const hill = new THREE.Mesh(SPHERE_GEO, envMat(s.c));
+        hill.scale.set(s.w * PX * 0.5, s.h * PX * 0.5, 180 * PX * 0.5);
+        hill.position.set(wx(s.x), BASE_Y - 10 * PX, wz(s.z));
+        hill.receiveShadow = true;
+        scene.add(hill);
+      }
     }
 
-    function makeTree(x, z, s, rng) {
+    function makeBackTree(x, z, h, r) {
       const group = new THREE.Group();
-      group.position.set(x, BASE_Y, z);
-      group.scale.setScalar(s);
-      const trunk = new THREE.Mesh(UNIT_CYL, MAT.trunk);
-      trunk.scale.set(0.09, 1.5, 0.09);
-      trunk.position.y = 0.75;
+      group.position.set(wx(x), BASE_Y, wz(z));
+      scene.add(group);
+      const trunk = new THREE.Mesh(
+        new THREE.CylinderGeometry(r * 0.11 * PX, r * 0.18 * PX, h * 0.6 * PX, 7),
+        envMat(PAL.TRUNK)
+      );
+      trunk.position.y = h * 0.30 * PX;
       trunk.castShadow = true; trunk.receiveShadow = true;
       group.add(trunk);
-      const leafMats = [MAT.leafA, MAT.leafB, MAT.leafC];
-      const puffs = [
-        [0, 1.95, 0, 0.85],
-        [-0.42, 1.55, 0.18, 0.62],
-        [0.4, 1.72, -0.16, 0.7],
-        [0.08, 2.42, 0.05, 0.6]
-      ];
-      puffs.forEach(([px, py, pz, r], i) => {
-        const leaf = new THREE.Mesh(UNIT_ICO, leafMats[i % leafMats.length]);
-        leaf.scale.setScalar(r * (0.9 + rng() * 0.2));
-        leaf.position.set(px, py, pz);
-        leaf.rotation.set(rng() * 3, rng() * 3, rng() * 3);
+      const leafCols = [PAL.LEAF_A, PAL.LEAF_B, PAL.LEAF_C];
+      for (let i = 0; i < 3; i++) {
+        const cy = h * 0.56 + i * h * 0.14;
+        const cr = r * (1 - i * 0.18);
+        const leaf = new THREE.Mesh(SPHERE_GEO, envMat(leafCols[i % leafCols.length]));
+        leaf.scale.set(cr * PX, cr * 0.86 * PX, cr * PX);
+        leaf.position.y = cy * PX;
         leaf.castShadow = true; leaf.receiveShadow = true;
         group.add(leaf);
-      });
-      scene.add(group);
-      return group;
+      }
+      const sideA = new THREE.Mesh(SPHERE_GEO, envMat(PAL.LEAF_B));
+      sideA.scale.setScalar(r * 0.48 * PX);
+      sideA.position.set(r * 0.5 * PX, h * 0.60 * PX, r * 0.1 * PX);
+      sideA.castShadow = true; sideA.receiveShadow = true;
+      group.add(sideA);
+      const sideB = new THREE.Mesh(SPHERE_GEO, envMat(PAL.LEAF_C));
+      sideB.scale.setScalar(r * 0.44 * PX);
+      sideB.position.set(-r * 0.45 * PX, h * 0.68 * PX, -r * 0.1 * PX);
+      sideB.castShadow = true; sideB.receiveShadow = true;
+      group.add(sideB);
+      envContactShadow(x, z, r * 1.7, r * 1.05, 0.5, -1.6);
     }
 
-    function buildRightSide() {
-      const rng = makeRng(555);
-      // low stone wall beyond the sidewalk
-      addBox(0.5, 0.7, BOARD_Z1 - BOARD_Z0, BOARD_X1 + 0.42, BASE_Y + 0.35, 0, MAT.stone, true, true);
-      addBox(0.62, 0.09, BOARD_Z1 - BOARD_Z0, BOARD_X1 + 0.42, BASE_Y + 0.745, 0, MAT.stoneLight, true, false);
-      // hedge wall behind it
-      for (let z = -7.2; z <= 7.2; z += 1.35) {
-        const s = 0.5 + rng() * 0.2;
-        const bush = new THREE.Mesh(UNIT_ICO, rng() > 0.5 ? MAT.leafA : MAT.leafB);
-        bush.scale.set(s * 0.9, s * 1.05, s);
-        bush.position.set(BOARD_X1 + 1.05 + (rng() - 0.5) * 0.3, BASE_Y + s, z);
-        bush.rotation.y = rng() * Math.PI;
-        bush.castShadow = true; bush.receiveShadow = true;
-        scene.add(bush);
+    function makeConifer(x, z, h) {
+      const group = new THREE.Group();
+      group.position.set(wx(x), BASE_Y, wz(z));
+      scene.add(group);
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(5 * PX, 7 * PX, h * 0.4 * PX, 6), envMat(PAL.TRUNK));
+      trunk.position.y = h * 0.2 * PX;
+      trunk.castShadow = true;
+      group.add(trunk);
+      const toneA = new THREE.Color(0x356b35), toneB = new THREE.Color(0x2c5a2c);
+      for (let i = 0; i < 3; i++) {
+        const cr = h * (0.19 - i * 0.05);
+        const cone = new THREE.Mesh(new THREE.ConeGeometry(cr * PX, h * 0.34 * PX, 8), envMat(0xffffff));
+        cone.material = new THREE.MeshLambertMaterial({ color: toneA.clone().lerp(toneB, i * 0.3) });
+        cone.position.y = (h * 0.30 + i * h * 0.22 + h * 0.16) * PX;
+        cone.castShadow = true; cone.receiveShadow = true;
+        group.add(cone);
       }
+      envContactShadow(x, z, h * 0.4, h * 0.26, 0.45, -1.6);
+    }
+
+    // --- foreground apron ---------------------------------------------------
+    function buildForeground() {
+      const g = BASE_GROUND;
+      const y0 = LAWN.Y1 + 6;   // 676
+      envSlab(60, y0, 1220, g.FRONT_Y + 40, -0.6, -8.0, PAL.FRONT_GRASS, false);
+      envSlab(-300, y0, 60, g.FRONT_Y + 16, 0.0, -12.0, PAL.PATIO, false);
+      for (let i = 0; i < 5; i++) {
+        envSlab(-300, y0 + 20 + i * 46, 60, y0 + 23 + i * 46, -0.5, -1.2, PAL.PATIO_SEAM, false);
+      }
+      for (let i = 0; i < 5; i++) {
+        envSlab(70 + i * 230, y0 + 8, 182 + i * 230, g.FRONT_Y, -0.25, -0.9, PAL.LAWN_STRIPE, false);
+      }
+      envContactShadow(716, 700, 980, 70, 0.26, 0.0);
+      for (let i = 0; i < 3; i++) {
+        envSlab(700 + i * 24, 748 + i * 40, 752 + i * 24, 776 + i * 40, 0.4, -2.0, PAL.STONE_LIGHT, false);
+      }
+      const flowerCols = [PAL.FLOWER_RED, PAL.FLOWER_YELLOW, PAL.FLOWER_PINK, PAL.FLOWER_WHITE];
+      for (let i = 0; i < 10; i++) {
+        const fx = 108 + i * 14;
+        const fz = 792 + (i % 3) * 10 + Math.floor(i / 3) * 16;
+        envCylinder(fx, 12, fz, 1.2, 1.6, 24, PAL.LEAF_C, false, 4);
+        envSphere(fx, 26, fz, 6.0, flowerCols[i % flowerCols.length], [1, 1, 1], false);
+      }
+      envSphere(150, 2, 812, 32, PAL.HEDGE_LIGHT, [1.3, 0.9, 1.0], true);
+      envSphere(1210, 2, 826, 34, PAL.HEDGE, [1.3, 0.9, 1.0], true);
+      envContactShadow(150, 812, 90, 56, 0.35, -0.5);
+      envContactShadow(1210, 826, 96, 60, 0.35, -0.5);
     }
 
     // ---- Camera helpers ----
@@ -1678,6 +1835,10 @@
     let boomLight = null;
 
     function destroyView(v) {
+      if (v.glow) {
+        scene.remove(v.glow);
+        if (v.glow.material) v.glow.material.dispose();
+      }
       if (v.sprite) {
         scene.remove(v.sprite);
         if (v.sprite.material) v.sprite.material.dispose();
@@ -1841,14 +2002,14 @@
       const target = s.targetY;
       if (s.y < target) {
         const k = Math.max(0, Math.min(1, (s.y + 30) / Math.max(1, target + 30)));
-        return 95 + (1 - k) * 230;
+        return 120 + (1 - k) * 250;
       }
-      return 95;
+      return 120;
     }
 
     function sunWorldPosition(s) {
       const h = sunVisualHeightGamePx(s);
-      const bob = s.y >= s.targetY ? Math.sin(elapsed * 2.4 + (s.bobOffset || 0)) * 3.2 : 0;
+      const bob = s.y >= s.targetY ? Math.sin(elapsed * 2.4 + (s.bobOffset || 0)) * 6.5 : 0;
       _pos.set(wx(s.x), GAME_GROUND, wz(s.y));
       _pos.addScaledVector(CAM_UP, (h + bob) * PX);
       return _pos;
@@ -1857,8 +2018,21 @@
     function createSunView(s) {
       const entry = getSheetEntry('i_sun');
       const sprite = makeBillboardSprite(entry, RENDER_SUN);
-      const shadow = makeBlobShadow(0.8, 0.5, 0.12);
-      return { sprite, shadow, entry, phase: (s.bobOffset || 0) };
+      const shadow = makeBlobShadow(0.95, 0.6, 0.2);
+      const glow = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: TEX.glow,
+        transparent: true,
+        depthWrite: false,
+        depthTest: true,
+        blending: THREE.AdditiveBlending,
+        toneMapped: false,
+        opacity: 0.72,
+        color: 0xffe27a
+      }));
+      glow.scale.set(SPRITE_W * 1.5, SPRITE_H * 1.5, 1);
+      glow.renderOrder = RENDER_SUN - 1;
+      scene.add(glow);
+      return { sprite, shadow, glow, entry, phase: (s.bobOffset || 0) };
     }
 
     function updateSunView(v, s, t) {
@@ -1867,11 +2041,18 @@
       const pulse = 1 + 0.03 * Math.sin(t * 3.4 + v.phase);
       v.sprite.scale.set(SPRITE_W * pulse, SPRITE_H * pulse, 1);
       v.sprite.material.rotation = Math.sin(t * 0.9 + v.phase) * 0.18;
+      if (v.glow) {
+        v.glow.position.copy(v.sprite.position);
+        v.glow.position.y -= 0.04;
+        const gp = 1.02 + 0.06 * Math.sin(t * 2.2 + v.phase);
+        v.glow.scale.set(SPRITE_W * 1.5 * gp, SPRITE_H * 1.5 * gp, 1);
+      }
       const groundY = groundYForGameX(s.x);
-      placeBlobShadow(v.shadow, s.x, s.y, groundY, 0.08);
-      const scale = 0.55 + h / 320;
-      v.shadow.scale.set(0.8 * scale, 1, 0.5 * scale);
-      v.shadow.material.opacity = Math.max(0.05, 0.16 - h / 2000);
+      // Offset the blob shadow toward the camera to sell the floating height.
+      v.shadow.position.set(wx(s.x), groundY + 0.006, wz(s.y) + 0.55);
+      const scale = 0.8 + h / 260;
+      v.shadow.scale.set(1.0 * scale, 1, 0.62 * scale);
+      v.shadow.material.opacity = 0.22;
     }
 
     // Mower views ----------------------------------------------------------
@@ -2333,6 +2514,21 @@
       raycaster.setFromCamera(ndcVec, camera);
       if (!raycaster.ray.intersectPlane(groundPlane, hitPoint)) return null;
       return { x: hitPoint.x / PX + 640, y: hitPoint.z / PX + 360 };
+    }
+
+    const _gs = new THREE.Vector3();
+    function gameToScreen(gameX, gameY, heightPx) {
+      _gs.set((gameX - 640) * PX, (heightPx || 0) * PX, (gameY - 360) * PX);
+      _gs.project(camera);
+      return { x: (_gs.x * 0.5 + 0.5) * GAME_W, y: (-_gs.y * 0.5 + 0.5) * GAME_H };
+    }
+
+    function cellToScreen(row, col, heightPx) {
+      return gameToScreen(
+        GRID_X + col * CELL_W + CELL_W / 2,
+        GRID_Y + row * CELL_H + CELL_H / 2,
+        heightPx || 0
+      );
     }
 
     const _proj = new THREE.Vector3();
@@ -2924,6 +3120,8 @@
       get views() { return views; },
       get sheets() { return sheetCache; },
       screenToGame,
+      gameToScreen,
+      cellToScreen,
       sunScreenPixel
     };
 
@@ -2947,8 +3145,59 @@
         showLoadingError('贴图加载失败: ' + (err && err.message ? err.message : err));
       }
       assetsReady = true;
+      try { updateCardIcons(); } catch (e) { /* icons are cosmetic */ }
       if (SHOT_MODE) {
         try { enterShotMode(SHOT_LEVEL); } catch (err) { reportError(err && err.stack ? err.stack : err); }
+      }
+    }
+
+    function cropSheetToCanvas(entry, frameIndex, size) {
+      const img = entry && entry.texture && entry.texture.image;
+      if (!img || !img.width) return null;
+      const bbox = entry.def.bbox || [0, 0, FRAME_W, FRAME_H];
+      const frames = Math.max(1, entry.def.frames || 1);
+      const fx = (frameIndex % frames) * FRAME_W;
+      const pad = 4;
+      const sx = Math.max(0, fx + bbox[0] - pad);
+      const sy = Math.max(0, bbox[1] - pad);
+      const ex = Math.min(fx + FRAME_W, fx + bbox[2] + pad);
+      const ey = Math.min(FRAME_H, bbox[3] + pad);
+      const sw = ex - sx, sh = ey - sy;
+      if (sw <= 0 || sh <= 0) return null;
+      const c = document.createElement('canvas');
+      c.width = size; c.height = size;
+      const g = c.getContext('2d');
+      const s = Math.min((size - 4) / sw, (size - 4) / sh);
+      g.drawImage(img, sx, sy, sw, sh,
+        (size - sw * s) / 2, (size - sh * s) / 2, sw * s, sh * s);
+      return c;
+    }
+
+    function updateCardIcons() {
+      PLANT_DEFS.forEach(p => {
+        const entry = sheetCache.get(plantSheetForId(p.id));
+        const icon = document.querySelector(`#card-${p.id} .card-icon`);
+        if (!entry || !icon) return;
+        const c = cropSheetToCanvas(entry, 0, 64);
+        if (!c) return;
+        c.style.width = '100%';
+        c.style.height = '100%';
+        icon.style.background = 'transparent';
+        icon.innerHTML = '';
+        icon.appendChild(c);
+      });
+      const sunEntry = sheetCache.get('i_sun');
+      const sunIcon = document.querySelector('.sun-icon');
+      if (sunEntry && sunIcon) {
+        const c = cropSheetToCanvas(sunEntry, 0, 48);
+        if (c) {
+          c.style.width = '100%';
+          c.style.height = '100%';
+          sunIcon.style.background = 'transparent';
+          sunIcon.style.boxShadow = 'none';
+          sunIcon.innerHTML = '';
+          sunIcon.appendChild(c);
+        }
       }
     }
 

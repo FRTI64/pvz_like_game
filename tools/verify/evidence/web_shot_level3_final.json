@@ -1,0 +1,64 @@
+{
+  "ok": true,
+  "mode": "shot",
+  "out": "screenshots/web_3d_level3.png",
+  "startedAt": "2026-11-10T08:24:06.097Z",
+  "cdpHost": "http://127.0.0.1:9222",
+  "host": {
+    "Browser": "Chrome/157.0.8103.39",
+    "File-Path-Style": "windows",
+    "Protocol-Version": "1.3",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.0.0 Safari/537.36",
+    "V8-Version": "15.7.112.23",
+    "WebKit-Version": "537.36 (@9a31f0acec1854d44e49a73fbf8017598151a583)",
+    "webSocketDebuggerUrl": "ws://127.0.0.1:9222/devtools/browser/cb7c1365-8e05-4d71-9866-efbe497e3059"
+  },
+  "server": {
+    "base": "http://127.0.0.1:8123",
+    "startedByHarness": true
+  },
+  "tabId": "82AF2C9BC9DF1971F7C6EF1ADCB786D5",
+  "url": "http://localhost:8123/web_preview/index.html?shot=1&level=3",
+  "navMs": 822,
+  "ready": true,
+  "pvz": {
+    "hasPvz": true,
+    "hasPvzDebug": true,
+    "ready": true,
+    "pvzErrors": [],
+    "state": "PLAYING",
+    "sun": 200,
+    "level": 3,
+    "counts": {
+      "plants": 15,
+      "zombies": 5,
+      "suns": 2
+    },
+    "hudSun": "200",
+    "menuVisible": false,
+    "pauseVisible": false,
+    "webgl2": true
+  },
+  "png": {
+    "bytes": 322017
+  },
+  "imageStats": {
+    "yAvg": 135.45,
+    "yMin": 16,
+    "yMax": 235,
+    "satAvg": 36,
+    "uniform": false,
+    "dark": false,
+    "likelyBlank": false
+  },
+  "errors": {
+    "exceptions": [],
+    "console": [],
+    "log": [],
+    "crashes": []
+  },
+  "consoleWarnings": [],
+  "errorCount": 0,
+  "warnings": [],
+  "elapsedMs": 2564
+}

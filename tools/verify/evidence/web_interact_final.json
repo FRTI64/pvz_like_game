@@ -1,0 +1,253 @@
+{
+  "ok": true,
+  "base": "http://localhost:8121",
+  "cdpHost": "http://127.0.0.1:9222",
+  "out": "screenshots/web_3d_interaction.png",
+  "startedAt": "2026-11-10T08:25:31.552Z",
+  "png": {
+    "path": "/home/frti64/pvz_like_game/screenshots/web_3d_interaction_level3.png",
+    "bytes": 218804
+  },
+  "outLevel3": "screenshots/web_3d_interaction_level3.png",
+  "pngLevel3": {
+    "bytes": 218804
+  },
+  "errors": {
+    "exceptions": [],
+    "console": [],
+    "log": [],
+    "crashes": []
+  },
+  "results": [
+    {
+      "name": "window.__pvzReady after load",
+      "ok": true,
+      "detail": {
+        "result": "ready"
+      }
+    },
+    {
+      "name": "menu shows 3 level cards",
+      "ok": true,
+      "detail": {
+        "cards": 3
+      }
+    },
+    {
+      "name": "level 1 starts from menu (PLAYING, sun 150)",
+      "ok": true,
+      "detail": {
+        "state": "PLAYING",
+        "sun": 150,
+        "level": 1,
+        "ready": true
+      }
+    },
+    {
+      "name": "seed card selectable",
+      "ok": true
+    },
+    {
+      "name": "canvas click planted peashooter at (row1,col2)",
+      "ok": true,
+      "detail": {
+        "id": "peashooter",
+        "hp": 300,
+        "maxHp": 300,
+        "row": 1,
+        "col": 2,
+        "armed": false,
+        "chewing": false
+      }
+    },
+    {
+      "name": "sun spent 100 (150 -> 50)",
+      "ok": true,
+      "detail": {
+        "sun": 50,
+        "hud": "50",
+        "cardDisabled": true
+      }
+    },
+    {
+      "name": "HUD sun label synced",
+      "ok": true,
+      "detail": {
+        "sun": 50,
+        "hud": "50",
+        "cardDisabled": true
+      }
+    },
+    {
+      "name": "card enters cooldown/disabled after planting",
+      "ok": true,
+      "detail": {
+        "sun": 50,
+        "hud": "50",
+        "cardDisabled": true
+      }
+    },
+    {
+      "name": "natural sun settled visible on lawn",
+      "ok": true,
+      "detail": {
+        "i": 0,
+        "sp": {
+          "x": 892.1158794974913,
+          "y": 307.7499830175927
+        },
+        "y": 487.4793000000011
+      }
+    },
+    {
+      "name": "click sun collects +25",
+      "ok": true,
+      "detail": {
+        "before": 50,
+        "after": 75,
+        "left": 0
+      }
+    },
+    {
+      "name": "__pvz.addSun(2000)",
+      "ok": true,
+      "detail": {
+        "sun": 2075
+      }
+    },
+    {
+      "name": "all 8 plant types planted in distinct cells",
+      "ok": true,
+      "detail": {
+        "planted": 8,
+        "missing": []
+      }
+    },
+    {
+      "name": "cooldown blocks immediate re-plant",
+      "ok": true,
+      "detail": {
+        "sun": 1275,
+        "cell": null
+      }
+    },
+    {
+      "name": "shovel removes plant from cell",
+      "ok": true,
+      "detail": {
+        "before": "sunflower",
+        "after": null
+      }
+    },
+    {
+      "name": "level 1 has 5 waves",
+      "ok": true,
+      "detail": {
+        "wave": 1,
+        "waves": 5
+      }
+    },
+    {
+      "name": "peashooter projectile damages spawned zombie",
+      "ok": true,
+      "detail": {
+        "type": "normal",
+        "row": 1,
+        "x": 552.8002400000003,
+        "y": 285,
+        "hp": 180,
+        "armor": 0,
+        "maxArmor": 0,
+        "chilled": false,
+        "eating": false
+      }
+    },
+    {
+      "name": "lawnmower clears lane (zombie removed)",
+      "ok": true,
+      "detail": {
+        "lane4": []
+      }
+    },
+    {
+      "name": "pause modal opens and game state PAUSED",
+      "ok": true,
+      "detail": {
+        "state": "PAUSED",
+        "display": "flex"
+      }
+    },
+    {
+      "name": "resume returns to PLAYING",
+      "ok": true,
+      "detail": {
+        "state": "PLAYING",
+        "display": "none"
+      }
+    },
+    {
+      "name": "victory path shows VICTORY modal",
+      "ok": true,
+      "detail": {
+        "state": "VICTORY",
+        "title": "VICTORY!",
+        "modal": "flex"
+      }
+    },
+    {
+      "name": "restart after victory returns to PLAYING",
+      "ok": true,
+      "detail": {
+        "state": "PLAYING",
+        "sun": 150
+      }
+    },
+    {
+      "name": "defeat path shows game-over modal",
+      "ok": true,
+      "detail": {
+        "state": "GAME_OVER",
+        "title": "THE ZOMBIES ATE YOUR BRAINS!",
+        "modal": "flex"
+      }
+    },
+    {
+      "name": "level 2 starts (sun 100, 6 waves)",
+      "ok": true,
+      "detail": {
+        "level": 2,
+        "sun": 100,
+        "state": "PLAYING",
+        "waves": 6
+      }
+    },
+    {
+      "name": "level 3 starts (sun 200, 7 waves)",
+      "ok": true,
+      "detail": {
+        "level": 3,
+        "sun": 200,
+        "state": "PLAYING",
+        "waves": 7
+      }
+    },
+    {
+      "name": "window.__pvzErrors empty",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "name": "no uncaught exceptions / console errors / 404s",
+      "ok": true,
+      "detail": {
+        "exceptions": [],
+        "console": [],
+        "log": [],
+        "crashes": []
+      }
+    }
+  ],
+  "passed": 26,
+  "total": 26,
+  "elapsedMs": 35833
+}

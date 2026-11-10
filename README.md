@@ -189,16 +189,25 @@ node tools/build_web_assets.mjs
 
 ## 🧪 验证与测试
 
-`tools/verify/` 下提供独立验证工具（构建/无头环境）：
+`tools/verify/` 下提供一套独立验证工具（不依赖游戏白盒逻辑，靠真实输入/引擎 API 驱动）：
 
-- `tools/verify/web_shot.mjs`：用 Playwright headless Chromium 打开网页预览，等待 `window.__pvzReady`、
-  检查 `window.__pvzErrors` 与控制台错误，截图到 `screenshots/`（支持 `--mode menu|pause|baseline2d`、`--level N`）。
-- `tools/verify/capture_godot.gd/.tscn` + shell wrapper：加载 `scenes/main.tscn`，用真实 API 种植/刷怪/放阳光，
-  等待数秒后保存视口截图；`--setup empty|plants|zombies|suns|gameplay|pause`。
-- `tools/verify/` 内还包含 Godot headless 逻辑冒烟测试（脚本化种植、波次推进、胜负路径）与 QA 报告模板。
+| 工具 | 作用 |
+| --- | --- |
+| `tools/verify/web_shot.mjs` + `cdp.mjs` | 通过 CDP 驱动无头浏览器打开网页预览：等待 `window.__pvzReady`、断言 `window.__pvzErrors`/console/页面异常为空、截图（`shot/menu/pause/baseline2d` 模式、`--level N`） |
+| `tools/verify/web_interact.mjs` | 网页版 E2E：菜单→关卡、卡牌+画布点击种植（格子/阳光/冷却/HUD）、投影阳光点击收集、8 种植物、铲子、弹道伤害、小推车、暂停、胜负弹窗、重开、关卡 2/3 |
+| `tools/verify/capture_godot.gd/.tscn` + `godot_shot.sh` | 加载 `scenes/main.tscn`，用真实 API 种植/刷怪/放阳光后保存视口截图（`--setup empty/plants/zombies/suns/gameplay/pause` 等 8 种） |
+| `tools/verify/smoke_logic.gd/.tscn` + `godot_smoke.sh` | Godot headless 逻辑冒烟测试：种植/扣阳光/占位/阳光不足、自然落阳与投影点击收集、波次推进、僵尸行走/被豌豆击杀、啃食、小推车、HUD 暂停/继续、胜负面板（34 条断言，30s 模拟） |
 
-> 无头 Linux/WSL2 软件渲染（llvmpipe + GL Compatibility）下，方向光阴影贴图不生效（`shader_gles3.cpp:802`
-> 环境限制）；这不影响真实 GPU 与网页版，截图中的“落地感”由每单位地面软阴影（blob shadow）保证。
+**当前验收结果**（详见 [`tools/verify/QA_REPORT.md`](tools/verify/QA_REPORT.md)，最终结论 **PASS**，无阻断缺陷）：
+
+- Godot headless 逻辑/流程冒烟：**34/34 PASS**（1802 帧 ≈30s 模拟，日志干净）；10/10 截图场景通过（0 SCRIPT ERROR）。
+- Godot 渲染像素级视觉检查：**5/5 PASS**（寒冰染色、路障破甲前后像素差异均可见且状态正确）。
+- 网页版 E2E：**26/26 PASS**，0 错误/异常/404；菜单、暂停、胜负、关卡 2/3、真实点击种植/收阳光/铲子/小推车全部覆盖。
+- 网页版渲染帧率（无头 WARP 软件 GPU，1280x720）：**~52 fps**，满足验收标准。
+- 两个版本各自的开发期自测（交互 53/53、流程 16/16、实体集成 34/34、数值/行为对照 42/42、网格生命周期 10/10）见 QA 报告附录。
+
+> 本仓库的验证在 WSL2 + 软件渲染（llvmpipe/GL Compatibility）下进行：方向光阴影贴图在该软件栈不生效
+> （`shader_gles3.cpp:802` 环境限制），截图中的“落地感”由每单位地面软阴影（blob shadow）保证；这不影响真实 GPU。
 
 ---
 
@@ -240,6 +249,18 @@ node tools/build_web_assets.mjs
 | 1 前院草坪 | 5 | 入门阶梯波次 |
 | 2 夜幕突袭 | 6 | 路障/铁桶夹攻 |
 | 3 尸潮狂欢 | 7 | 铁桶大军终极围攻 |
+
+---
+
+## ⚠️ 已知限制 / 环境说明
+
+- **网页预览需要本地 HTTP 服务**：页面使用 ES module 与 WebGL2，请通过 `python3 serve.py 8080` 访问
+  `http://localhost:8080/web_preview/`（直接 file:// 打开会因浏览器模块/跨域策略失败）；需要浏览器支持 WebGL2，
+  不支持时会显示明确的错误面板而不是白屏。
+- **Godot Web 导出**需要在本机安装 Godot 4.7.2 的 Web 导出模板（引擎本身不含模板）；导出后同样用 `serve.py` 提供 COOP/COEP 头。
+- **软件渲染环境**（如无 GPU 的 CI/WSL2 llvmpipe）：3D 场景可运行但较慢（约 18–25 ms/帧），且方向光阴影贴图不生效；
+  真实 GPU 上 3D 场景为 60fps 级别。网页版在集成/软件 GPU 上（WARP）约 50fps。
+- 3D 渲染风格为 **HD-2D/2.5D**：角色与植物是面向相机的 2D 立牌（billboard），不是 3D 建模；玩法与数值与原 2D 版一致。
 
 ---
 
